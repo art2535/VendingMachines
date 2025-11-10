@@ -1,0 +1,36 @@
+﻿# ===============================
+# IDE / JetBrains Rider
+# ===============================
+.idea/
+
+# ===============================
+# Visual Studio / .NET
+# ===============================
+# Build Folders
+bin/
+obj/
+.vs/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Auto-generated files
+*.Designer.cs
+*.generated.cs
+*.g.cs
+
+# ===============================
+# Rider / IntelliJ IDEA default ignored files (если нужно)
+# ===============================
+/shelf/
+/workspace.xml
+/contentModel.xml
+/projectSettingsUpdater.xml
+/modules.xml
+/.idea.VendingMachines.iml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml

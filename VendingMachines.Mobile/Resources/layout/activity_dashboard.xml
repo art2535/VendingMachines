@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+	<androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+		<!-- Карточка Фото -->
+		<com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_photo"
+            style="@style/Widget.MaterialComponents.CardView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            app:strokeColor="@color/colorPrimary"
+            app:strokeWidth="2dp"
+            app:layout_constraintWidth_percent="0.48"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+			<LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+
+				<ImageView
+                    android:src="@drawable/ic_camera"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+
+				<com.google.android.material.textview.MaterialTextView
+                    android:text="@string/photo"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<!-- Карточка Видео -->
+		<com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_video"
+            style="@style/Widget.MaterialComponents.CardView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            app:strokeColor="@color/colorAccent"
+            app:strokeWidth="2dp"
+            app:layout_constraintWidth_percent="0.48"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+			<LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+
+				<ImageView
+                    android:src="@drawable/ic_video"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+
+				<com.google.android.material.textview.MaterialTextView
+                    android:text="@string/video"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<!-- Карточка Заметка -->
+		<com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_note"
+            style="@style/Widget.MaterialComponents.CardView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            app:strokeColor="@color/colorSecondary"
+            app:strokeWidth="2dp"
+            app:layout_constraintWidth_percent="0.48"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toBottomOf="@id/card_photo"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="16dp">
+
+			<LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+
+				<ImageView
+                    android:src="@drawable/ic_add"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+
+				<com.google.android.material.textview.MaterialTextView
+                    android:text="@string/note"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<!-- Карточка Архив -->
+		<com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_archive"
+            style="@style/Widget.MaterialComponents.CardView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            app:strokeColor="@android:color/darker_gray"
+            app:strokeWidth="2dp"
+            app:layout_constraintWidth_percent="0.48"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toBottomOf="@id/card_video"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="16dp">
+
+			<LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
+
+				<ImageView
+                    android:src="@drawable/ic_archive"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+
+				<com.google.android.material.textview.MaterialTextView
+                    android:text="@string/archive"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+	</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

@@ -1,0 +1,142 @@
+﻿@page
+@model VendingMachines.Web.Pages.Account.Admin.VendingMachinesModel
+@{
+	ViewData["Title"] = "Торговые автоматы";
+}
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        table th, table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        table tbody tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        table tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+
+    input {
+        width: 15px;
+        height: 15px;
+    }
+</style>
+
+<div style="display: flex; flex-direction: column; justify-content: center;">
+    <div>
+        <label>Торговые автоматы</label>
+    </div>
+    <div>
+        <label>Всего найдено @Model.TotalCount шт.</label>
+    </div>
+    <form method="get">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <label>Показать по </label>
+            <select asp-for="PageSize" asp-items="Model.PageSizes" onchange="this.form.submit()"></select>
+            <label> записей</label>
+        </div>
+
+        <table style="max-height: 400px; min-width: 200px; overflow: auto;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Название автомата</th>
+                    <th>Модель</th>
+                    <th>Компания</th>
+                    <th>Модем</th>
+                    <th>Адрес / Место</th>
+                    <th>В работе с</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Devices != null && Model.Devices.Count > 0)
+                {
+                    @foreach (var device in Model.Devices)
+                    {
+                        <tr>
+                            <td>@device.Id</td>
+                            <td>@device.Name</td>
+                            <td>@device.Model</td>
+                            <td>@device.Company</td>
+                            <td>@device.ModemId</td>
+                            <td>@device.Address</td>
+                            <td>@device.InstallationDate</td>
+                            <td>
+                                <div>
+                                    <input type="image" src="~/resources/IconEdit.png" alt="Редактировать" />
+                                    <input type="image" src="~/resources/IconDetachModem.png" alt="Отвязать модем" />
+                                    <input type="image" src="~/resources/IconDelete.png" alt="Удалить" />
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">Данных нет</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="pagination" style="margin-top: 10px;">
+                <ul style="list-style: none; display: flex; gap: 5px; padding: 0;">
+                    <li>
+                        <a class="@(Model.PageNumber == 1 ? "disabled" : "")"
+                           href="?PageNumber=@(Model.PageNumber - 1)&PageSize=@Model.PageSize">← Назад</a>
+                    </li>
+
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li>
+                            <a class="@(i == Model.PageNumber ? "current-page" : "")"
+                               href="?PageNumber=@i&PageSize=@Model.PageSize">@i</a>
+                        </li>
+                    }
+
+                    <li>
+                        <a class="@(Model.PageNumber == Model.TotalPages ? "disabled" : "")"
+                           href="?PageNumber=@(Model.PageNumber + 1)&PageSize=@Model.PageSize">Вперед →</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+
+        <style>
+            .pagination a {
+                padding: 5px 10px;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                text-decoration: none;
+                color: black;
+            }
+
+                .pagination a:hover:not(.disabled) {
+                    background-color: #eee;
+                }
+
+                .pagination a.current-page {
+                    background-color: #007bff;
+                    color: white;
+                    font-weight: bold;
+                }
+
+                .pagination a.disabled {
+                    pointer-events: none;
+                    opacity: 0.5;
+                }
+        </style>
+    </form>
+</div>

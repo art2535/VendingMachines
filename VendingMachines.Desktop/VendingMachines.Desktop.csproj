@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\AddIcon.png" />
+    <None Remove="Resources\exit.png" />
+    <None Remove="Resources\IconDelete.png" />
+    <None Remove="Resources\IconDetachModem.png" />
+    <None Remove="Resources\IconEdit.png" />
+    <None Remove="Resources\IconExport.png" />
+    <None Remove="Resources\Profile.png" />
+    <None Remove="Resources\RussiaFlag.png" />
+    <None Remove="Resources\sessions.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VendingMachines.API\VendingMachines.API.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\AddIcon.png" />
+    <Resource Include="Resources\exit.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\IconDelete.png" />
+    <Resource Include="Resources\IconDetachModem.png" />
+    <Resource Include="Resources\IconEdit.png" />
+    <Resource Include="Resources\IconExport.png" />
+    <Resource Include="Resources\Profile.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\RussiaFlag.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\sessions.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>

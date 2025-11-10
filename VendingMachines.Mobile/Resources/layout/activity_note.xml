@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+	<!-- Toolbar -->
+	<com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+		<com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_main"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/app_name"
+            app:titleTextColor="@android:color/white"/>
+	</com.google.android.material.appbar.AppBarLayout>
+
+	<!-- Контент с прокруткой -->
+	<androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+		<LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+			<!-- Заголовок заметки -->
+			<com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+				<com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/note_title"
+                    android:inputType="textCapSentences"/>
+			</com.google.android.material.textfield.TextInputLayout>
+
+			<!-- Тело заметки -->
+			<com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+				<com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/body"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:hint="@string/note_body"
+                    android:inputType="textMultiLine"
+                    android:gravity="top|start"
+                    android:scrollbars="vertical"/>
+			</com.google.android.material.textfield.TextInputLayout>
+
+		</LinearLayout>
+	</androidx.core.widget.NestedScrollView>
+
+	<!-- Кнопки FAB -->
+	<FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom">
+
+		<!-- FAB — синхронизация -->
+		<com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_margin="16dp"
+            app:srcCompat="@drawable/ic_cancel" />
+
+		<!-- FAB — добавление заметки -->
+		<com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_add_note"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            app:srcCompat="@drawable/ic_add"
+            app:contentDescription="@string/note" />
+
+	</FrameLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

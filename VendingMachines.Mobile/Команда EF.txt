@@ -1,0 +1,5 @@
+﻿PS D:\IDE Projects\Visual Studio\C#\VendingMachines> cd VendingMachines.Infrastructure
+PS D:\IDE Projects\Visual Studio\C#\VendingMachines\VendingMachines.Infrastructure> 
+dotnet ef dbcontext scaffold "Host=localhost;Port=5432;Database=VendingMachines;Username=postgres;Password=1234" Npgsql.EntityFrameworkCore.PostgreSQL --output-dir ../VendingMachines.Core/Models --context-dir Data --context VendingMachinesContext --schema public --data-annotations --force --namespace VendingMachines.Core.Models --context-namespace VendingMachines.Infrastructure.Data
+Build started...
+Build succeeded.

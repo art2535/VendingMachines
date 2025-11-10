@@ -1,0 +1,19 @@
+﻿@page
+@model VendingMachines.Web.Pages.Account.ProfileModel
+@{
+	ViewData["Title"] = "Информация о пользователе";
+}
+
+<div> 
+	@if (!string.IsNullOrEmpty(Model.ErrorMessage)) {
+		<div style="color:red;"> @Model.ErrorMessage </div>
+	} 
+	else
+	{
+		<h2>Добро пожаловать!</h2>
+		<p><strong>Email:</strong> @Model.Email</p>
+
+		<p><strong>ФИО:</strong> @(Model.FullName ?? "—")</p>
+		<p><strong>Роль:</strong> @(Model.RoleName ?? "—")</p>
+	}
+</div>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+		xmlns:android="http://schemas.android.com/apk/res/android"
+		xmlns:app="http://schemas.android.com/apk/res-auto"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_margin="8dp"
+		app:cardCornerRadius="12dp"
+		app:cardElevation="4dp"
+		app:strokeColor="#EEEEEE"
+		app:strokeWidth="1dp">
+
+	<!-- Основной вертикальный контейнер -->
+	<LinearLayout
+			android:orientation="vertical"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:padding="12dp">
+
+		<!-- Верхняя часть: картинка + текст -->
+		<LinearLayout
+				android:orientation="horizontal"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content">
+
+			<ImageView
+					android:id="@+id/preview"
+					android:layout_width="80dp"
+					android:layout_height="80dp"
+					android:scaleType="centerCrop"
+					android:background="@drawable/ic_logo" />
+
+			<LinearLayout
+					android:orientation="vertical"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginStart="12dp">
+
+				<com.google.android.material.textview.MaterialTextView
+						android:id="@+id/type"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Фото"
+						android:textStyle="bold"
+						android:textSize="16sp" />
+
+				<com.google.android.material.textview.MaterialTextView
+						android:id="@+id/date"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="02.11.2025 14:30"
+						android:textColor="@android:color/darker_gray"
+						android:textSize="14sp" />
+			</LinearLayout>
+		</LinearLayout>
+
+		<!-- Кнопка теперь под подписями -->
+		<com.google.android.material.button.MaterialButton
+				android:id="@+id/btn_export"
+				style="@style/Widget.MaterialComponents.Button.TextButton"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center"
+				android:layout_marginTop="8dp"
+				android:text="@string/export"
+				app:icon="@drawable/ic_download"
+				app:iconGravity="textStart" />
+	</LinearLayout>
+</com.google.android.material.card.MaterialCardView>

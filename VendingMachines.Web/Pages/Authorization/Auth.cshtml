@@ -1,0 +1,31 @@
+﻿@page
+@model VendingMachines.Web.Pages.Authorization.AuthModel
+@{
+	ViewData["Title"] = "Вход в систему";
+}
+
+<div>
+	<form asp-action="post">
+		<label>Войти в систему</label>
+		<div>
+			<label>Email:</label>
+			<input type="text" asp-for="Email" />
+			<span asp-validation-for="Email" style="color:red; display: block;"></span>
+		</div>
+		<div>
+			<label>Пароль:</label>
+			<input type="password" asp-for="Password" />
+			<span asp-validation-for="Password" style="color:red; display: block;"></span>
+		</div>
+		@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+		{
+			<div style="color: red; text-align: center; margin-bottom: 15px;">
+				@Model.ErrorMessage
+			</div>
+		}
+		<div>
+			<button type="submit" asp-page-handler="Login">Войти</button>
+			<button type="submit" asp-page-handler="Register">Зарегистрироваться</button>
+		</div>
+	</form>
+</div>

@@ -1,0 +1,18 @@
+<resources>
+	<string name="app_name">ServiceEngineer</string>
+	<string name="hint_email">Email или табельный номер</string>
+	<string name="hint_password">Пароль</string>
+	<string name="login">Войти</string>
+	<string name="forgot_password">Забыли пароль?</string>
+	<string name="photo">Сфотографировать</string>
+	<string name="video">Записать видео</string>
+	<string name="note">Создать заметку</string>
+	<string name="archive">Мои отчёты</string>
+	<string name="retake">Переснять</string>
+	<string name="save">Сохранить</string>
+	<string name="attach_photo">Прикрепить фото</string>
+	<string name="note_title">Заголовок</string>
+	<string name="note_body">Текст заметки...</string>
+	<string name="search">Поиск по дате, типу...</string>
+	<string name="export">Экспорт</string>
+</resources>

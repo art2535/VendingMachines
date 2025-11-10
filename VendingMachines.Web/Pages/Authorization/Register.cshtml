@@ -1,0 +1,39 @@
+﻿@page
+@model VendingMachines.Web.Pages.Authorization.RegisterModel
+@{
+	ViewData["Title"] = "Регистрация в системе";
+}
+
+<div>
+	<form asp-action="post">
+		<label>Регистрация в системе</label>
+		<div>
+			<label>Email:</label>
+			<input type="email" asp-for="Email" />
+			<span asp-validation-for="Email" style="color:red; display: block;"></span>
+		</div>
+		<div>
+			<label>Пароль:</label>
+			<input type="password" asp-for="Password" />
+			<span asp-validation-for="Password" style="color:red; display: block;"></span>
+		</div>
+		<div>
+			<label>Повторите пароль:</label>
+			<input type="password" asp-for="RepeatPassword" />
+			<span asp-validation-for="RepeatPassword" style="color:red; display: block;"></span>
+		</div>
+		@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+		{
+			<div style="color: red; text-align: center; margin-bottom: 15px;">
+				@Model.ErrorMessage
+			</div>
+		}
+		<div>
+			<button type="submit" asp-page-handler="Register">Зарегистрироваться</button>
+			<div>
+				<label>Уже есть аккаунт?</label>
+				<button type="submit" asp-page-handler="Login">Войти</button>
+			</div>
+		</div>
+	</form>
+</div>

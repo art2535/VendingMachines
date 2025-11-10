@@ -1,0 +1,6 @@
+@VendingMachines.API_HostAddress = http://localhost:5221
+
+GET {{VendingMachines.API_HostAddress}}/api/Notes
+Accept: application/json
+
+###
