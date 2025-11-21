@@ -172,7 +172,7 @@ namespace VendingMachines.Mobile
                  * 7270 - порт HTTPS
                  */
 
-                var response = await httpClient.PostAsync("http://172.20.10.2:5221/api/auth/login", content);
+                var response = await httpClient.PostAsync("http://172.20.10.2:5321/api/auth/login", content);
 
                 if (!response.IsSuccessStatusCode)
                 {

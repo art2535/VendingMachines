@@ -5,6 +5,7 @@ using AndroidX.AppCompat.App;
 using Google.Android.Material.AppBar;
 using Google.Android.Material.BottomNavigation;
 using static Google.Android.Material.Navigation.NavigationBarView;
+using AlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace VendingMachines.Mobile;
 
@@ -12,6 +13,7 @@ namespace VendingMachines.Mobile;
 public abstract class BaseActivity : AppCompatActivity
 {
     protected BottomNavigationView? BottomNav;
+    private AlertDialog? _logoutDialog;
 
     protected const int REQUEST_CAMERA_PHOTO = 100;
     protected const int REQUEST_CAMERA_VIDEO = 101;
@@ -19,15 +21,23 @@ public abstract class BaseActivity : AppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
+        
+        var token = GetJwtToken();
+        if (string.IsNullOrEmpty(token))
+        {
+            var intent = new Intent(this, typeof(LoginActivity));
+            intent.SetFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
+            StartActivity(intent);
+        }
     }
 
     protected abstract int ToolbarTitleResourceId { get; }
+    protected abstract int GetSelectedNavItemId();
 
     public override void SetContentView(int layoutResID)
     {
         var fullView = LayoutInflater.Inflate(Resource.Layout.activity_base, null);
         var container = fullView.FindViewById<ViewGroup>(Resource.Id.content_container);
-
         LayoutInflater.Inflate(layoutResID, container, true);
 
         base.SetContentView(fullView);
@@ -35,7 +45,8 @@ public abstract class BaseActivity : AppCompatActivity
         var toolbar = FindViewById<MaterialToolbar>(Resource.Id.toolbar_main);
         if (toolbar != null)
         {
-            toolbar!.SetTitle(ToolbarTitleResourceId);
+            toolbar.SetTitle(ToolbarTitleResourceId);
+            toolbar.MenuItemClick += Toolbar_MenuItemClick;
         }
 
         BottomNav = FindViewById<BottomNavigationView>(Resource.Id.bottom_nav);
@@ -46,14 +57,48 @@ public abstract class BaseActivity : AppCompatActivity
         }
     }
 
-    protected abstract int GetSelectedNavItemId();
+    private void Toolbar_MenuItemClick(object sender, MaterialToolbar.MenuItemClickEventArgs e)
+    {
+        if (e.Item.ItemId == Resource.Id.action_logout)
+        {
+            ShowLogoutDialog();
+        }
+    }
+
+    private void ShowLogoutDialog()
+    {
+        if (_logoutDialog != null && _logoutDialog.IsShowing)
+            return;
+
+        var builder = new AlertDialog.Builder(this);
+        builder.SetTitle("Выход");
+        builder.SetMessage("Вы действительно хотите выйти из аккаунта?");
+        builder.SetCancelable(true);
+
+        builder.SetPositiveButton("Да", (_, _) =>
+        {
+            // Удаляем токен
+            var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
+            prefs.Edit().Remove("JWT_TOKEN").Apply();
+
+            // Переходим на экран входа
+            var intent = new Intent(this, typeof(LoginActivity));
+            intent.SetFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
+            StartActivity(intent);
+
+            Finish(); // Завершаем текущую активность
+        });
+
+        builder.SetNegativeButton("Нет", (_, _) => { });
+
+        _logoutDialog = builder.Create();
+        if (!IsFinishing)
+            _logoutDialog.Show();
+    }
 
     private void BottomNav_ItemSelected(object? sender, ItemSelectedEventArgs e)
     {
-        if (e.Item.ItemId == GetSelectedNavItemId())
-        {
-            return;
-        }
+        if (e.Item.ItemId == GetSelectedNavItemId()) return;
 
         switch (e.Item.ItemId)
         {
@@ -109,5 +154,18 @@ public abstract class BaseActivity : AppCompatActivity
         {
             BottomNav.SelectedItemId = GetSelectedNavItemId();
         }
+    }
+    
+    protected override void OnDestroy()
+    {
+        _logoutDialog?.Dismiss();
+        base.OnDestroy();
+    }
+
+    protected string GetJwtToken()
+    {
+        var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
+        var token = prefs?.GetString("JWT_TOKEN", null);
+        return token ?? string.Empty;
     }
 }
