@@ -54,8 +54,8 @@ public class EventsController : ControllerBase
         return Ok(await notes.ToListAsync());
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetNoteByIdAsync(int id)
+    [HttpGet("filter")]
+    public async Task<IActionResult> GetNoteByNameOrDate([FromQuery] string name, [FromQuery] DateTime date)
     {
         var note = from e in _context.Events
             join d in _context.Devices on e.DeviceId equals d.Id
@@ -64,6 +64,7 @@ public class EventsController : ControllerBase
             join l in _context.Locations on d.LocationId equals l.Id
             join ds in _context.DeviceStatuses on d.DeviceStatusId equals ds.Id
             join c in _context.Companies on d.CompanyId equals c.Id
+            where e.EventType == name || e.DateTime == date
             select new NotesRequest
             {
                 Id = e.Id,
@@ -86,7 +87,7 @@ public class EventsController : ControllerBase
                 }
             };
         
-        return Ok(await note.FirstOrDefaultAsync(d => d.Id == id));
+        return Ok(note.ToList());
     }
 
     [HttpPost]
