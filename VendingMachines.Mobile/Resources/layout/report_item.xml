@@ -60,10 +60,15 @@
 				style="@style/Widget.MaterialComponents.Button.TextButton"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content"
+				android:minHeight="0dp"
+				android:minWidth="0dp"
+				android:paddingStart="12dp"
+				android:paddingEnd="12dp"
+				android:paddingTop="6dp"
+				android:paddingBottom="6dp"
 				android:layout_gravity="center"
-				android:layout_marginTop="8dp"
 				android:text="@string/export"
-				app:icon="@drawable/ic_download"
-				app:iconGravity="textStart" />
+				app:iconGravity="textStart"
+				app:iconPadding="8dp"/>
 	</LinearLayout>
 </com.google.android.material.card.MaterialCardView>
