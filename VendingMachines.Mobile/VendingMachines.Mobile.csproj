@@ -17,10 +17,20 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.14.0" />
     <PackageReference Include="Xamarin.Google.Android.Material" Version="1.13.0" />
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="9.0.0" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.IdentityModel.Tokens.Jwt">
       <HintPath>..\..\..\..\..\Program Files\NuGetPackagesCache\system.identitymodel.tokens.jwt\8.14.0\lib\net9.0\System.IdentityModel.Tokens.Jwt.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Update="Resources\layout\activity_settings.xml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:UpdateGeneratedFiles</Generator>
+    </AndroidResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Services\" />
   </ItemGroup>
 </Project>
