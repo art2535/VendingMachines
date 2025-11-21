@@ -18,19 +18,13 @@ namespace VendingMachines.API
 
             builder.Services.AddCors(options =>
             {
-                // ѕолитика CORS дл€ WPF-клиента
-                // ѕозвол€ет любому источнику (любому домену) обращатьс€ к API.
-                // »спользуетс€ дл€ десктопного приложени€, которое может быть на любом устройстве.
                 options.AddPolicy("AllowWpf", builder =>
                 {
-                    builder.AllowAnyOrigin()   // –азрешить запросы с любого домена
-                        .AllowAnyMethod()   // –азрешить любые HTTP-методы (GET, POST, PUT, DELETE и т.д.)
-                        .AllowAnyHeader();  // –азрешить любые заголовки
+                    builder.AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
                 });
-
-                // ѕолитика CORS дл€ Razor Pages веб-приложени€
-                // –азрешает запросы только с конкретного веб-домена (https://localhost:7164)
-                // ƒл€ безопасного взаимодействи€ браузера с API
+                
                 options.AddPolicy("AllowWebApp", policy =>
                 {
                     policy.WithOrigins("https://localhost:7164")
