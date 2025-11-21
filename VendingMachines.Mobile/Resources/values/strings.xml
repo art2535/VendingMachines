@@ -15,4 +15,19 @@
 	<string name="note_body">Текст заметки...</string>
 	<string name="search">Поиск по дате, типу...</string>
 	<string name="export">Экспорт</string>
+	<string name="settings_title">Настройки</string>
+	<string name="category_general">Общие</string>
+	<string name="category_notifications">Уведомления</string>
+	<string name="category_about">О приложении</string>
+	<string name="dark_theme_title">Тёмная тема</string>
+	<string name="dark_theme_enabled">Включена</string>
+	<string name="dark_theme_disabled">Выключена</string>
+	<string name="language_title">Язык</string>
+	<string name="system_default">Системный</string>
+	<string name="notification_volume">Громкость уведомлений</string>
+	<string name="notifications_enabled">Уведомления</string>
+	<string name="notifications_summary">Получать push-уведомления</string>
+	<string name="version_title">Версия</string>
+	<string name="version_summary">1.5.3</string>
+	<string name="privacy_policy">Политика конфиденциальности</string>
 </resources>

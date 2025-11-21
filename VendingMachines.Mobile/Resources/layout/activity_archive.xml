@@ -7,18 +7,17 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-	<!-- Поисковое поле -->
 	<com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
 		<com.google.android.material.textfield.MaterialAutoCompleteTextView
-            android:id="@+id/search"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/search"
-            android:inputType="text" />
+				android:id="@+id/search"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:hint="@string/search"
+				android:inputType="text" />
 	</com.google.android.material.textfield.TextInputLayout>
 
 	<!-- Список -->
