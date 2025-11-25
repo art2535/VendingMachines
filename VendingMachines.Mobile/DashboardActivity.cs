@@ -45,7 +45,7 @@ public class DashboardActivity : BaseActivity
         switch (e.Item.ItemId)
         {
             case Resource.Id.action_settings:
-                Toast.MakeText(this, "Открыты настройки", ToastLength.Short)?.Show();
+                StartActivity(typeof(SettingsActivity));
                 break;
             case Resource.Id.action_logout:
                 if (await LogoutAsync())
@@ -75,7 +75,7 @@ public class DashboardActivity : BaseActivity
             httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await httpClient.PostAsync("http://172.20.10.2:5221/api/auth/logout", null);
+            var response = await httpClient.PostAsync("http://192.168.1.77:5321/api/auth/logout", null);
 
             if (!response.IsSuccessStatusCode)
             {
