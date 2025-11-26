@@ -7,11 +7,13 @@ using VendingMachines.API.DTOs.Auth;
 using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
 using VendingMachines.Infrastructure.Services;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace VendingMachines.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [SwaggerTag("Контроллер авторизации и аутентификации")]
     public class AuthController : ControllerBase
     {
         private readonly VendingMachinesContext _context;
@@ -25,6 +27,9 @@ namespace VendingMachines.API.Controllers
 
         [Authorize]
         [HttpGet("info")]
+        [SwaggerOperation(Summary = "Информация о текущем пользователе")]
+        [ProducesResponseType(typeof(UserRequest), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetUserAsync()
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -50,6 +55,9 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPost("register")]
+        [SwaggerOperation(Summary = "Регистрация нового пользователя")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> RegisterAsync([FromBody] RegisterRequest request)
         {
             if (request.Password != request.RepeatPassword)
@@ -70,6 +78,11 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPost("login")]
+        [SwaggerOperation(
+            Summary = "Вход в систему", 
+            Description = "Возвращает JWT-токен и данные пользователя. Токен также сохраняется в cookie.")]
+        [ProducesResponseType(typeof(UserRequest), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> LoginAsync([FromBody] LoginRequest loginRequest)
         {
             var user = await _context.Users
@@ -101,6 +114,7 @@ namespace VendingMachines.API.Controllers
 
         [Authorize]
         [HttpPost("refresh-token")]
+        [SwaggerOperation(Summary = "Обновление JWT-токена")]
         public IActionResult RefreshToken()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -113,6 +127,9 @@ namespace VendingMachines.API.Controllers
 
         [Authorize]
         [HttpPost("logout")]
+        [SwaggerOperation(
+            Summary = "Выход из системы", 
+            Description = "Удаляет JWT из cookies")]
         public IActionResult LogoutAsync()
         {
             Response.Cookies.Delete("jwt_token");

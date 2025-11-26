@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VendingMachines.API.DTOs.Monitoring;
 using VendingMachines.Infrastructure.Data;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace VendingMachines.API.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [SwaggerTag("Контроллер мониторинга и аналитики")]
     public class MonitoringController : ControllerBase
     {
         private readonly VendingMachinesContext _context;
@@ -19,10 +21,13 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("network-status")]
+        [SwaggerOperation(
+            Summary = "Сетевой статус аппаратов", 
+            Description = "Фильтрация по статусу и типу подключения + статистика эффективности и выручки.")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetNetworkStatusAsync([FromQuery] string status = "",
             [FromQuery] string connectionType = "")
         {
-            // Формируем запрос к таблице устройств с нужными Include
             var query = _context.Devices
                 .Include(d => d.DeviceStatus)
                 .Include(d => d.Modem)
@@ -30,14 +35,12 @@ namespace VendingMachines.API.Controllers
                     .ThenInclude(dm => dm.DeviceType)
                 .AsQueryable();
 
-            // Фильтр по статусу (по части названия, регистронезависимо)
             if (!string.IsNullOrEmpty(status))
             {
                 query = query.Where(d => d.DeviceStatus != null &&
                                          d.DeviceStatus.Name.Contains(status, StringComparison.OrdinalIgnoreCase));
             }
 
-            // Фильтр по типу подключения
             if (!string.IsNullOrEmpty(connectionType))
             {
                 query = query.Where(d => d.DeviceModel != null &&
@@ -46,22 +49,21 @@ namespace VendingMachines.API.Controllers
                                              StringComparison.OrdinalIgnoreCase));
             }
 
-            // Выполняем запрос
             var devices = await query.OrderBy(d => d.Id).ToListAsync();
 
-            // Подсчет активных/неактивных
             var activeCount = devices.Count(d =>
                 d.DeviceStatus != null &&
                 d.DeviceStatus.Name.Equals("Активен", StringComparison.OrdinalIgnoreCase));
 
             var inactiveCount = devices.Count - activeCount;
 
-            // Эффективность
             var efficiency = devices.Count != 0 ? (double)activeCount / devices.Count * 100 : 0;
 
-            // Сумма продаж по выбранным устройствам
             var money = await _context.Sales
-                .Where(s => s.DeviceId.HasValue && devices.Select(d => d.Id).Contains(s.DeviceId.Value))
+                .Where(s => s.DeviceId.HasValue && 
+                            devices
+                                .Select(d => d.Id)
+                                .Contains(s.DeviceId.Value))
                 .Join(_context.Products, s => s.ProductId, p => p.Id, (s, p) => p.Price)
                 .SumAsync();
 
@@ -76,12 +78,15 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("summary")]
+        [SwaggerOperation(
+            Summary = "Сводка за сегодня/вчера", 
+            Description = "Выручка, инкассация, обслуживание, деньги в ТА и т.д.")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSummaryAsync([FromQuery] DateTime? date = null)
         {
             var targetDate = date?.Date ?? DateTime.UtcNow.Date;
             var yesterday = targetDate.AddDays(-1);
 
-            // Выручка
             var sales = await _context.Sales
                 .Include(s => s.Product)
                 .Where(s => s.SaleDateTime == targetDate || s.SaleDateTime == yesterday)
@@ -94,11 +99,9 @@ namespace VendingMachines.API.Controllers
                 .Where(s => s.SaleDateTime == yesterday && s.Product != null)
                 .Sum(s => s.Product.Price);
 
-            // Инкассация (предполагаем, что это сумма продаж)
             var collectedToday = revenueToday;
             var collectedYesterday = revenueYesterday;
 
-            // Обслуживание
             var services = await _context.Services
                 .Where(s => s.ServiceDate == DateOnly.FromDateTime(targetDate) 
                 || s.ServiceDate == DateOnly.FromDateTime(yesterday))
@@ -107,14 +110,13 @@ namespace VendingMachines.API.Controllers
             var servicedToday = services.Count(s => s.ServiceDate == DateOnly.FromDateTime(targetDate));
             var servicedYesterday = services.Count(s => s.ServiceDate == DateOnly.FromDateTime(yesterday));
 
-            // Деньги и сдача в ТА (на основе инвентаря)
             var inventory = await _context.Inventories
                 .Include(i => i.Product)
                 .ToListAsync();
 
             var moneyInTA = inventory.Sum(i => i.Quantity * i.Product.Price);
-            var changeInTA = inventory.Sum(i => i.Quantity * i.Product.Price * 0.1m); // Примерный расчет сдачи (10%)
-
+            var changeInTA = inventory.Sum(i => i.Quantity * i.Product.Price * 0.1m);
+            
             return Ok(new
             {
                 MoneyInTA = moneyInTA,
@@ -129,6 +131,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("sales-trend")]
+        [SwaggerOperation(
+            Summary = "Тренд продаж за период", 
+            Description = "Можно получить по сумме или по количеству продаж.")]
+        [ProducesResponseType(typeof(List<SaleTrend>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetSalesTrendAsync([FromQuery] DateTime? startDate, 
             [FromQuery] DateTime? endDate, [FromQuery] bool byAmount = true)
         {
@@ -157,6 +163,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("notifications")]
+        [SwaggerOperation(Summary = "Уведомления системы")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetNotificationsAsync([FromQuery] int? deviceId, [FromQuery] int? priorityId, 
             [FromQuery] int limit = 10, [FromQuery] int offset = 0)
         {

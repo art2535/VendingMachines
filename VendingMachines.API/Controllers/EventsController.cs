@@ -4,12 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using VendingMachines.Core.Models;
 using VendingMachines.DTOs.Events;
 using VendingMachines.Infrastructure.Data;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace VendingMachines.API.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
+[SwaggerTag("Контроллер для работы с событиями и заметками по аппаратам")]
 public class EventsController : ControllerBase
 {
     private VendingMachinesContext _context;
@@ -20,6 +22,10 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet]
+    [SwaggerOperation(
+        Summary = "Получение всех событий", 
+        Description = "Возвращает полный список событий с подробной информацией об аппарате.")]
+    [ProducesResponseType(typeof(List<NotesRequest>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllNotesAsync()
     {
         var notes = from e in _context.Events
@@ -55,6 +61,8 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet("filter")]
+    [SwaggerOperation(Summary = "Фильтрация событий по типу или дате")]
+    [ProducesResponseType(typeof(List<NotesRequest>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetNoteByNameOrDate([FromQuery] string name, [FromQuery] DateTime date)
     {
         var note = from e in _context.Events
@@ -87,10 +95,13 @@ public class EventsController : ControllerBase
                 }
             };
         
-        return Ok(note.ToList());
+        return Ok(note.ToListAsync());
     }
 
     [HttpPost]
+    [SwaggerOperation(Summary = "Создание новой заметки/события")]
+    [ProducesResponseType(typeof(Event), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddNoteAsync([FromBody] NotesRequest request)
     {
         var device = await _context.Devices
@@ -116,6 +127,10 @@ public class EventsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [SwaggerOperation(Summary = "Обновление события")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateNoteAsync(int id, [FromBody] NotesRequest request)
     {
         var existingEvent = await _context.Events
@@ -153,6 +168,9 @@ public class EventsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [SwaggerOperation(Summary = "Удаление события")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteNoteAsync(int id)
     {
         var deletedNote = await _context.Events

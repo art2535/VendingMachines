@@ -4,12 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using VendingMachines.API.DTOs.Devices;
 using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace VendingMachines.API.Controllers
 {
     [ApiController]
     [Authorize]
     [Route("api/[controller]")]
+    [SwaggerTag("Контроллер для управления вендинговыми аппаратами")]
     public class DevicesController : ControllerBase
     {
         private readonly VendingMachinesContext _context;
@@ -20,6 +22,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet]
+        [SwaggerOperation(Summary = "Список аппаратов с фильтрацией и пагинацией")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDevicesAsync([FromQuery] int limit = 10,
             [FromQuery] int offset = 0, [FromQuery] string nameFilter = "")
         {
@@ -62,6 +66,9 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "Получение аппарата по ID")]
+        [ProducesResponseType(typeof(DeviceListItem), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetDeviceByIdAsync([FromRoute] int id)
         {
             var query = from device in _context.Devices
@@ -92,6 +99,9 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPost]
+        [SwaggerOperation(Summary = "Создание нового аппарата")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateNewDeviceAsync([FromBody] Device device)
         {
             if (device == null)
@@ -123,6 +133,9 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [SwaggerOperation(Summary = "Полное обновление аппарата")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateDeviceAsync([FromRoute] int id, [FromBody] DeviceUpdateDto dto)
         {
             var existingDevice = await _context.Devices
@@ -142,7 +155,6 @@ namespace VendingMachines.API.Controllers
             existingDevice.InstallationDate = dto.InstallationDate != default ? dto.InstallationDate : existingDevice.InstallationDate;
             existingDevice.LastServiceDate = dto.LastServiceDate ?? existingDevice.LastServiceDate;
 
-            // --- Обновление Location ---
             if (dto.Location != null)
             {
                 if (existingDevice.Location == null || !existingDevice.LocationId.HasValue)
@@ -186,6 +198,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [SwaggerOperation(Summary = "Удаление аппарата")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<IActionResult> DeleteDeviceAsync([FromRoute] int id)
         {
             var device = await _context.Devices.FindAsync(id);
@@ -201,6 +215,9 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPatch("{id}/detach-modem")]
+        [SwaggerOperation(Summary = "Отвязка модема от аппарата")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DetachModemAsync([FromRoute] int id)
         {
             var device = await _context.Devices.FindAsync(id);
@@ -218,6 +235,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("companies")]
+        [SwaggerOperation(Summary = "Список компаний (для выпадающих списков)")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCompaniesAsync()
         {
             var companies = await _context.Companies
@@ -227,6 +246,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("devicemodels")]
+        [SwaggerOperation(Summary = "Список моделей аппаратов")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDeviceModelsAsync()
         {
             var models = await _context.DeviceModels
@@ -236,6 +257,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("modems")]
+        [SwaggerOperation(Summary = "Список модемов")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetModemsAsync()
         {
             var modems = await _context.Modems
@@ -245,6 +268,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("paymentmethods")]
+        [SwaggerOperation(Summary = "Способы оплаты")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaymentMethodsAsync()
         {
             var paymentMethods = await _context.PaymentMethods
@@ -254,6 +279,8 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("locations")]
+        [SwaggerOperation(Summary = "Список локаций")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetLocationsAsync()
         {
             var locations = await _context.Locations

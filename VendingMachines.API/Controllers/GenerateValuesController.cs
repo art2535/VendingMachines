@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace VendingMachines.API.Controllers
 {
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [SwaggerTag("Тестовый контроллер для генерации случайных значений мониторинга")]
     public class GenerateValuesController : ControllerBase
     {
         private readonly Random _random;
@@ -16,6 +18,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("money")]
+        [SwaggerOperation(
+            Summary = "Генерация случайной суммы денег в аппарате",
+            Description = "Возвращает случайное значение от 0 до 9999 RUB. Используется для тестирования UI.")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult GetMoney()
         {
             var money = _random.Next(0, 10000);
@@ -27,6 +33,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("connection")]
+        [SwaggerOperation(
+            Summary = "Случайный статус соединения",
+            Description = "Возвращает один из статусов: Online, Offline, Unstable.")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult GetConnectionStatus()
         {
             var statuses = new[] { "Online", "Offline", "Unstable" };
@@ -40,6 +50,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("stock")]
+        [SwaggerOperation(
+            Summary = "Случайные остатки ингредиентов и расходников",
+            Description = "Возвращает случайные значения остатков кофе, сахара, молока, стаканов и т.д.")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult GetStockAsync()
         {
             var stock = new
@@ -56,6 +70,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("cash")]
+        [SwaggerOperation(
+            Summary = "Случайные данные по наличным и безналичным платежам",
+            Description = "Возвращает наличные в купюроприёмнике, сумму безналичных платежей и общую выручку.")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult GetCashStatus()
         {
             var cash = new
@@ -76,6 +94,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet("statuses")]
+        [SwaggerOperation(
+            Summary = "Случайные статусы аппарата",
+            Description = "Возвращает 1–2 случайных статуса из списка (работает, на обслуживании, ошибки и т.д.).")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public IActionResult GetStatuses()
         {
             var statuses = new string[]

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
 
@@ -9,6 +10,7 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [SwaggerTag("Контроллер для управления компаниями")]
     public class CompaniesController : ControllerBase
     {
         private readonly VendingMachinesContext _context;
@@ -19,6 +21,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet]
+        [SwaggerOperation(
+            Summary = "Получение списка компаний", 
+            Description = "Поддерживает фильтр по части названия.")]
+        [ProducesResponseType(typeof(List<Company>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCompaniesAsync([FromQuery] int limit = 10,
             [FromQuery] int offset = 0, [FromQuery] string nameFilter = "")
         {
@@ -38,6 +44,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPost]
+        [SwaggerOperation(Summary = "Создание новой компании")]
+        [ProducesResponseType(typeof(Company), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateCompanyAsync([FromBody] Company company)
         {
             if (company == null)
@@ -63,6 +73,10 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [SwaggerOperation(Summary = "Обновление компании")]
+        [ProducesResponseType(typeof(Company), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateCompanyAsync([FromRoute] int id, [FromBody] Company company)
         {
             if (company.Id != id)
@@ -85,6 +99,9 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [SwaggerOperation(Summary = "Удаление компании")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteCompanyAsync([FromRoute] int id)
         {
             var deletedCompany = await _context.Companies.FindAsync(id);
