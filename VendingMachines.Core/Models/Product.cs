@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -33,8 +34,10 @@ public partial class Product
     public DateTime? CreatedAt { get; set; }
 
     [InverseProperty("Product")]
+    [JsonIgnore]
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 
     [InverseProperty("Product")]
+    [JsonIgnore]
     public virtual ICollection<Sale> Sales { get; set; } = new List<Sale>();
 }

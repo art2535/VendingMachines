@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -28,13 +29,16 @@ public partial class Sale
 
     [ForeignKey("DeviceId")]
     [InverseProperty("Sales")]
+    [JsonIgnore]
     public virtual Device? Device { get; set; }
 
     [ForeignKey("PaymentMethodId")]
     [InverseProperty("Sales")]
+    [JsonIgnore]
     public virtual PaymentMethod? PaymentMethod { get; set; }
 
     [ForeignKey("ProductId")]
     [InverseProperty("Sales")]
+    [JsonIgnore]
     public virtual Product? Product { get; set; }
 }

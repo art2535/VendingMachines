@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -43,40 +44,51 @@ public partial class Device
     public DateTime? UpdatedAt { get; set; }
 
     [InverseProperty("Device")]
+    [JsonIgnore]
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     [ForeignKey("CompanyId")]
     [InverseProperty("Devices")]
+    [JsonIgnore]
     public virtual Company? Company { get; set; }
 
     [ForeignKey("DeviceModelId")]
     [InverseProperty("Devices")]
+    [JsonIgnore]
     public virtual DeviceModel? DeviceModel { get; set; }
 
     [ForeignKey("DeviceStatusId")]
     [InverseProperty("Devices")]
+    [JsonIgnore]
     public virtual DeviceStatus? DeviceStatus { get; set; }
 
     [InverseProperty("Device")]
+    [JsonIgnore]
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
 
     [InverseProperty("Device")]
+    [JsonIgnore]
     public virtual ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
 
     [ForeignKey("LocationId")]
     [InverseProperty("Devices")]
+    [JsonIgnore]
     public virtual Location? Location { get; set; }
 
     [ForeignKey("ModemId")]
     [InverseProperty("Devices")]
+    [JsonIgnore]
     public virtual Modem? Modem { get; set; }
 
     [InverseProperty("Device")]
+    [JsonIgnore]
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     [InverseProperty("Device")]
+    [JsonIgnore]
     public virtual ICollection<Sale> Sales { get; set; } = new List<Sale>();
 
     [InverseProperty("Device")]
+    [JsonIgnore]
     public virtual ICollection<Service> Services { get; set; } = new List<Service>();
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -29,9 +30,11 @@ public partial class Inventory
 
     [ForeignKey("DeviceId")]
     [InverseProperty("Inventories")]
+    [JsonIgnore]
     public virtual Device? Device { get; set; }
 
     [ForeignKey("ProductId")]
     [InverseProperty("Inventories")]
+    [JsonIgnore]
     public virtual Product? Product { get; set; }
 }

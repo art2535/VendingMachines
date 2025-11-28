@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -36,5 +37,6 @@ public partial class Contract
 
     [ForeignKey("CompanyId")]
     [InverseProperty("Contracts")]
+    [JsonIgnore]
     public virtual Company? Company { get; set; }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -56,15 +57,19 @@ public partial class User
 
     [ForeignKey("CompanyId")]
     [InverseProperty("Users")]
+    [JsonIgnore]
     public virtual Company? Company { get; set; }
 
     [InverseProperty("User")]
+    [JsonIgnore]
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     [ForeignKey("RoleId")]
     [InverseProperty("Users")]
+    [JsonIgnore]
     public virtual Role? Role { get; set; }
 
     [InverseProperty("User")]
+    [JsonIgnore]
     public virtual ICollection<Service> Services { get; set; } = new List<Service>();
 }

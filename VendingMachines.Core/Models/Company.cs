@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -35,14 +36,18 @@ public partial class Company
     public DateTime? UpdatedAt { get; set; }
 
     [InverseProperty("Company")]
+    [JsonIgnore]
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     [InverseProperty("Company")]
+    [JsonIgnore]
     public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();
 
     [InverseProperty("Company")]
+    [JsonIgnore]
     public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
 
     [InverseProperty("Company")]
+    [JsonIgnore]
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

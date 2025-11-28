@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -34,5 +35,6 @@ public partial class Modem
     public DateTime? CreatedAt { get; set; }
 
     [InverseProperty("Modem")]
+    [JsonIgnore]
     public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
 }

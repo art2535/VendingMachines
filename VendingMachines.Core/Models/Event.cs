@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -31,5 +32,6 @@ public partial class Event
 
     [ForeignKey("DeviceId")]
     [InverseProperty("Events")]
+    [JsonIgnore]
     public virtual Device? Device { get; set; }
 }

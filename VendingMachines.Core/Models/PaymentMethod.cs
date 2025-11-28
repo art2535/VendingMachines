@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -19,5 +20,6 @@ public partial class PaymentMethod
     public string Name { get; set; } = null!;
 
     [InverseProperty("PaymentMethod")]
+    [JsonIgnore]
     public virtual ICollection<Sale> Sales { get; set; } = new List<Sale>();
 }

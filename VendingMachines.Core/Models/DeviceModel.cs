@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -25,8 +26,10 @@ public partial class DeviceModel
 
     [ForeignKey("DeviceTypeId")]
     [InverseProperty("DeviceModels")]
+    [JsonIgnore]
     public virtual DeviceType? DeviceType { get; set; }
 
     [InverseProperty("DeviceModel")]
+    [JsonIgnore]
     public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
 }

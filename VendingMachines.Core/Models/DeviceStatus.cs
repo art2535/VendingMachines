@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace VendingMachines.Core.Models;
@@ -23,5 +24,6 @@ public partial class DeviceStatus
     public string? ColorCode { get; set; }
 
     [InverseProperty("DeviceStatus")]
+    [JsonIgnore]
     public virtual ICollection<Device> Devices { get; set; } = new List<Device>();
 }
