@@ -29,7 +29,7 @@ namespace VendingMachines.API.Controllers
         [HttpGet("info")]
         [SwaggerOperation(Summary = "Информация о текущем пользователе")]
         [ProducesResponseType(typeof(UserRequest), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetUserAsync()
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -41,6 +41,7 @@ namespace VendingMachines.API.Controllers
             if (user == null)
                 return NotFound("Пользователь не найден");
 
+            var token = Request.Cookies["jwt_token"];
             var userResponse = new UserRequest
             {
                 Email = user.Email,
@@ -48,7 +49,8 @@ namespace VendingMachines.API.Controllers
                 FirstName = user.FirstName,
                 MiddleName = user.MiddleName,
                 LastName = user.LastName,
-                RoleName = user.Role?.Name
+                RoleName = user.Role?.Name,
+                Token = token
             };
 
             return Ok(userResponse);

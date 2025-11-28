@@ -20,6 +20,18 @@ namespace VendingMachines.API.Controllers
             _context = context;
         }
 
+        [HttpGet]
+        [SwaggerOperation(Summary = "Список бронирований аппарата")]
+        [ProducesResponseType(typeof(Booking), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<IEnumerable<Booking>>> GetBookingsAsync()
+        {
+            return await _context.Bookings
+                .Include(b => b.Device)
+                .Include(b => b.Company)
+                .ToListAsync();
+        }
+
         [HttpPost]
         [SwaggerOperation(
             Summary = "Создание бронирования аппарата",

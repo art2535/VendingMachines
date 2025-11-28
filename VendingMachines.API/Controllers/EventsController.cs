@@ -95,7 +95,7 @@ public class EventsController : ControllerBase
                 }
             };
         
-        return Ok(note.ToListAsync());
+        return Ok(await note.ToListAsync());
     }
 
     [HttpPost]
