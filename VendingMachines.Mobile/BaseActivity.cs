@@ -203,7 +203,6 @@ public abstract class BaseActivity : AppCompatActivity
         else
         {
             Log.Warn("CameraResult", $"Файл не найден или пустой: {fileToProcess?.AbsolutePath}");
-            Toast.MakeText(this, "Медиа не было сохранено", ToastLength.Short)?.Show();
         }
 
         _currentPhotoFile = _currentVideoFile = null;
@@ -241,7 +240,7 @@ public abstract class BaseActivity : AppCompatActivity
         }
     }
 
-    private void AddMediaToGallery(string filePath, bool isVideo)
+    protected void AddMediaToGallery(string filePath, bool isVideo)
     {
         try
         {
