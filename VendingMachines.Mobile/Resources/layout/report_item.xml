@@ -25,8 +25,7 @@
 					android:id="@+id/preview"
 					android:layout_width="80dp"
 					android:layout_height="80dp"
-					android:scaleType="centerCrop"
-					android:background="@drawable/ic_logo" />
+					android:scaleType="centerCrop" />
 
 			<LinearLayout
 					android:orientation="vertical"
@@ -52,20 +51,46 @@
 			</LinearLayout>
 		</LinearLayout>
 
-		<com.google.android.material.button.MaterialButton
-				android:id="@+id/btn_export"
-				style="@style/Widget.MaterialComponents.Button.TextButton"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:minHeight="0dp"
-				android:minWidth="0dp"
-				android:paddingStart="12dp"
-				android:paddingEnd="12dp"
-				android:paddingTop="6dp"
-				android:paddingBottom="6dp"
+		<LinearLayout 
+				android:layout_width="match_parent" 
+				android:layout_height="match_parent"
+				android:orientation="horizontal"
 				android:layout_gravity="center"
-				android:text="@string/export"
-				app:iconGravity="textStart"
-				app:iconPadding="8dp"/>
+				android:layout_marginTop="15dp">
+			
+			<com.google.android.material.button.MaterialButton
+					android:id="@+id/btn_export"
+					style="@style/Widget.MaterialComponents.Button.TextButton"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:minHeight="0dp"
+					android:minWidth="0dp"
+					android:paddingStart="12dp"
+					android:paddingEnd="12dp"
+					android:paddingTop="6dp"
+					android:paddingBottom="6dp"
+					android:layout_gravity="center"
+					android:text="@string/export"
+					app:iconGravity="textStart"
+					app:iconPadding="8dp"/>
+
+			<com.google.android.material.button.MaterialButton
+					android:id="@+id/btn_delete"
+					style="@style/Widget.MaterialComponents.Button.TextButton"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:minHeight="0dp"
+					android:minWidth="0dp"
+					android:paddingStart="12dp"
+					android:paddingEnd="12dp"
+					android:paddingTop="6dp"
+					android:paddingBottom="6dp"
+					android:layout_gravity="center"
+					android:text="Удалить"
+					android:textColor="#FF0000"
+					app:iconGravity="textStart"
+					app:iconPadding="8dp"/>
+		</LinearLayout>
+		
 	</LinearLayout>
 </com.google.android.material.card.MaterialCardView>

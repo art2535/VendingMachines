@@ -309,7 +309,7 @@ public abstract class BaseActivity : AppCompatActivity
         base.OnDestroy();
     }
 
-    protected string GetJwtToken()
+    public string GetJwtToken()
     {
         var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
         var token = prefs?.GetString("JWT_TOKEN", null);

@@ -46,7 +46,7 @@ public class ArchiveActivity : BaseActivity
         _recyclerView!.SetLayoutManager(new LinearLayoutManager(this));
         _recyclerView.HasFixedSize = true;
 
-        _adapter = new ArchiveAdapter(new List<NotesRequest>());
+        _adapter = new ArchiveAdapter(new List<NotesRequest>(), this);
         _recyclerView.SetAdapter(_adapter);
 
         await RefreshEventsAsync(token);
