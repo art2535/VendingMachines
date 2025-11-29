@@ -213,6 +213,7 @@ public class EventsController : ControllerBase
         }
         
         _context.Events.Remove(deletedNote);
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 }
