@@ -10,6 +10,7 @@
 	<string name="archive">Мои отчёты</string>
 	<string name="retake">Переснять</string>
 	<string name="save">Сохранить</string>
+	<string name="clear_search">Очистить</string>
 	<string name="attach_photo">Прикрепить фото</string>
 	<string name="note_title">Заголовок</string>
 	<string name="note_body">Текст заметки...</string>

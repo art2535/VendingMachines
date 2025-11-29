@@ -8,19 +8,22 @@
     android:padding="16dp">
 
 	<com.google.android.material.textfield.TextInputLayout
+			android:id="@+id/search_layout"
+			style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
-			style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+			app:endIconMode="clear_text">
 
 		<com.google.android.material.textfield.MaterialAutoCompleteTextView
 				android:id="@+id/search"
 				android:layout_width="match_parent"
 				android:layout_height="wrap_content"
 				android:hint="@string/search"
-				android:inputType="text" />
+				android:inputType="text"
+				android:imeOptions="actionSearch" />
+
 	</com.google.android.material.textfield.TextInputLayout>
 
-	<!-- Список -->
 	<androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view"
         android:layout_width="match_parent"
@@ -30,13 +33,11 @@
         android:paddingTop="8dp"
         android:paddingBottom="80dp" />
 
-	<!-- Кнопки действий -->
 	<FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
 		android:layout_marginBottom="40dp">
 
-		<!-- FAB — синхронизация -->
 		<com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_sync"
             android:layout_width="wrap_content"
@@ -45,7 +46,6 @@
             android:layout_margin="16dp"
             app:srcCompat="@drawable/ic_sync" />
 
-		<!-- FAB — добавление заметки -->
 		<com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab_add_note"
             android:layout_width="wrap_content"

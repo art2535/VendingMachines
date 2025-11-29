@@ -10,14 +10,12 @@
 		app:strokeColor="#EEEEEE"
 		app:strokeWidth="1dp">
 
-	<!-- Основной вертикальный контейнер -->
 	<LinearLayout
 			android:orientation="vertical"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:padding="12dp">
 
-		<!-- Верхняя часть: картинка + текст -->
 		<LinearLayout
 				android:orientation="horizontal"
 				android:layout_width="match_parent"
@@ -54,7 +52,6 @@
 			</LinearLayout>
 		</LinearLayout>
 
-		<!-- Кнопка теперь под подписями -->
 		<com.google.android.material.button.MaterialButton
 				android:id="@+id/btn_export"
 				style="@style/Widget.MaterialComponents.Button.TextButton"

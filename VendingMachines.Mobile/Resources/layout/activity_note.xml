@@ -1,82 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+		xmlns:android="http://schemas.android.com/apk/res/android"
+		xmlns:app="http://schemas.android.com/apk/res-auto"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent">
 
-	<!-- Контент с прокруткой -->
 	<androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:paddingBottom="100dp"
+			android:clipToPadding="false"
+			app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
 		<LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
 
-			<!-- Заголовок заметки -->
+			<!-- Тип события -->
 			<com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+					style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginBottom="16dp">
 
 				<com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/note_title"
-                    android:inputType="textCapSentences"/>
+						android:id="@+id/title"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:hint="Тип события"
+						android:inputType="textCapSentences"
+						android:enabled="false" />
 			</com.google.android.material.textfield.TextInputLayout>
 
-			<!-- Тело заметки -->
+			<!-- Описание -->
 			<com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+					style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginBottom="24dp">
 
 				<com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/body"
-                    android:layout_width="match_parent"
-                    android:layout_height="200dp"
-                    android:hint="@string/note_body"
-                    android:inputType="textMultiLine"
-                    android:gravity="top|start"
-                    android:scrollbars="vertical"/>
+						android:id="@+id/body"
+						android:layout_width="match_parent"
+						android:layout_height="200dp"
+						android:gravity="top|start"
+						android:hint="Описание"
+						android:inputType="textMultiLine|textCapSentences"
+						android:scrollbars="vertical"
+						android:enabled="false" />
 			</com.google.android.material.textfield.TextInputLayout>
+
+			<!-- БЛОК С ФОТО — ГЛАВНОЕ -->
+			<FrameLayout
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="16dp">
+
+				<!-- Превью фото -->
+				<ImageView
+						android:id="@+id/photo_preview"
+						android:layout_width="match_parent"
+						android:layout_height="300dp"
+						android:scaleType="centerCrop"
+						android:background="#11000000"
+						android:contentDescription="Фото события"
+						android:visibility="gone"
+						android:clickable="true"
+						android:focusable="true"
+						android:foreground="?android:attr/selectableItemBackgroundBorderless" />
+
+				<!-- Плейсхолдер "Добавить фото" -->
+				<LinearLayout
+					android:id="@+id/placeholder_add_photo"
+					android:layout_width="match_parent"
+					android:layout_height="300dp"
+					android:orientation="vertical"
+					android:gravity="center"
+					android:background="#0D000000"
+					android:clickable="true"
+					android:focusable="true"
+					android:foreground="?android:attr/selectableItemBackgroundBorderless">
+
+					<ImageView
+						android:layout_width="72dp"
+						android:layout_height="72dp"
+						app:srcCompat="@drawable/ic_camera_alt"
+						android:layout_marginBottom="16dp" />
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:text="Добавить фото"
+						android:textSize="18sp"
+						android:textColor="?attr/colorPrimary"
+						android:fontFamily="sans-serif-medium" />
+				</LinearLayout>
+
+			</FrameLayout>
 
 		</LinearLayout>
 	</androidx.core.widget.NestedScrollView>
 
-	<!-- Кнопки FAB -->
+	<!-- FAB-ки -->
 	<FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
 		android:layout_marginBottom="50dp">
 
-		<!-- FAB — синхронизация -->
 		<com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_cancel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|start"
-            android:layout_margin="16dp"
-            app:srcCompat="@drawable/ic_cancel" />
+			android:id="@+id/fab_cancel"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_gravity="bottom|start"
+			android:layout_marginStart="16dp"
+			android:layout_marginBottom="16dp"
+			app:srcCompat="@drawable/ic_cancel"
+			app:backgroundTint="@color/design_default_color_error"
+			app:tint="@android:color/white" />
 
-		<!-- FAB — добавление заметки -->
 		<com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_add_note"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="16dp"
-            app:srcCompat="@drawable/ic_add"
-            app:contentDescription="@string/note" />
+			android:id="@+id/fab_save"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_gravity="bottom|end"
+			android:layout_marginEnd="16dp"
+			android:layout_marginBottom="16dp"
+			app:srcCompat="@drawable/ic_edit"
+			app:backgroundTint="?attr/colorPrimary"
+			app:tint="@android:color/white" />
 
 	</FrameLayout>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
