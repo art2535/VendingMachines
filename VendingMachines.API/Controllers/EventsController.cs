@@ -20,84 +20,129 @@ public class EventsController : ControllerBase
     {
         _context = context;
     }
-
+    
     [HttpGet]
-    [SwaggerOperation(
-        Summary = "Получение всех событий", 
-        Description = "Возвращает полный список событий с подробной информацией об аппарате.")]
-    [ProducesResponseType(typeof(List<NotesRequest>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllNotesAsync()
+    [SwaggerOperation(Summary = "Получение архива событий с фильтрацией и сортировкой")]
+    public async Task<IActionResult> GetAllNotesAsync([FromQuery] string? search = null, [FromQuery] string? eventType = null,
+        [FromQuery] DateTime? date = null, [FromQuery] string? sortBy = "date", [FromQuery] string? sortOrder = "desc")
     {
-        var notes = from e in _context.Events
-            join d in _context.Devices on e.DeviceId equals d.Id
-            join dm in _context.DeviceModels on d.DeviceModelId equals dm.Id
-            join m in _context.Modems on d.ModemId equals m.Id
-            join l in _context.Locations on d.LocationId equals l.Id
-            join ds in _context.DeviceStatuses on d.DeviceStatusId equals ds.Id
-            join c in _context.Companies on d.CompanyId equals c.Id
-            select new NotesRequest
+        var query = _context.Events
+            .Include(e => e.Device)
+                .ThenInclude(d => d.DeviceModel)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.Modem)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.Location)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.DeviceStatus)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.Company)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLowerInvariant();
+            query = query.Where(e =>
+                e.EventType.ToLower().Contains(s) ||
+                e.Description.ToLower().Contains(s) ||
+                e.Device.Location.InstallationAddress.ToLower().Contains(s) ||
+                e.Device.DeviceModel.Name.ToLower().Contains(s) ||
+                e.Device.Company.Name.ToLower().Contains(s)
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(eventType))
+        {
+            query = query.Where(e => e.EventType == eventType.Trim());
+        }
+
+        if (date.HasValue)
+        {
+            var startOfDay = DateTime.SpecifyKind(date.Value.Date, DateTimeKind.Utc);
+            var endOfDay = startOfDay.AddDays(1).AddTicks(-1);
+            query = query.Where(e => e.DateTime >= startOfDay && e.DateTime <= endOfDay);
+        }
+
+        query = sortBy?.ToLower() switch
+        {
+            "type" => sortOrder?.ToLower() == "asc"
+                ? query.OrderBy(e => e.EventType).ThenByDescending(e => e.DateTime)
+                : query.OrderByDescending(e => e.EventType).ThenByDescending(e => e.DateTime),
+            _ => sortOrder?.ToLower() == "asc"
+                ? query.OrderBy(e => e.DateTime)
+                : query.OrderByDescending(e => e.DateTime)
+        };
+
+        var result = query.Select(e => new NotesRequest
+        {
+            Id = e.Id,
+            EventType = e.EventType ?? "",
+            Description = e.Description ?? "",
+            PhotoUrl = e.MediaPath,
+            EventDate = e.DateTime,
+            Device = e.Device != null ? new DeviceRequest
             {
-                Id = e.Id,
-                EventType = e.EventType,
-                Description = e.Description,
-                PhotoUrl = e.MediaPath,
-                EventDate = e.DateTime,
-                Device = new DeviceRequest
-                {
-                    Id = d.Id,
-                    DeviceModel = dm.Name,
-                    Location = l.InstallationAddress,
-                    Modem = m.Brand,
-                    DeviceStatus = ds.Name,
-                    Company = c.Name,
-                    InstallationDate = d.InstallationDate,
-                    LastServiceDate = d.LastServiceDate,
-                    CreatedAt = d.CreatedAt,
-                    UpdatedAt = d.UpdatedAt
-                }
-            };
-        
-        return Ok(await notes.ToListAsync());
+                Id = e.Device.Id,
+                DeviceModel = e.Device.DeviceModel != null ? e.Device.DeviceModel.Name : "Неизвестная модель",
+                Location = e.Device.Location != null ? e.Device.Location.InstallationAddress : "Адрес не указан",
+                Modem = e.Device.Modem != null ? e.Device.Modem.Brand : "Модем не указан",
+                DeviceStatus = e.Device.DeviceStatus != null ? e.Device.DeviceStatus.Name : "Статус неизвестен",
+                Company = e.Device.Company != null ? e.Device.Company.Name : "Компания не указана",
+                InstallationDate = e.Device.InstallationDate,
+                LastServiceDate = e.Device.LastServiceDate,
+                CreatedAt = e.Device.CreatedAt,
+                UpdatedAt = e.Device.UpdatedAt
+            } : null
+        });
+
+        return Ok(await result.ToListAsync());
     }
 
-    [HttpGet("filter")]
-    [SwaggerOperation(Summary = "Фильтрация событий по типу или дате")]
-    [ProducesResponseType(typeof(List<NotesRequest>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetNoteByNameOrDate([FromQuery] string name, [FromQuery] DateTime date)
+    [HttpGet("{id:int}")]
+    [SwaggerOperation(Summary = "Получение события по ID")]
+    public async Task<IActionResult> GetNoteByIdAsync(int id)
     {
-        var note = from e in _context.Events
-            join d in _context.Devices on e.DeviceId equals d.Id
-            join dm in _context.DeviceModels on d.DeviceModelId equals dm.Id
-            join m in _context.Modems on d.ModemId equals m.Id
-            join l in _context.Locations on d.LocationId equals l.Id
-            join ds in _context.DeviceStatuses on d.DeviceStatusId equals ds.Id
-            join c in _context.Companies on d.CompanyId equals c.Id
-            where e.EventType == name || e.DateTime == date
-            select new NotesRequest
-            {
-                Id = e.Id,
-                EventType = e.EventType,
-                Description = e.Description,
-                PhotoUrl = e.MediaPath,
-                EventDate = e.DateTime,
-                Device = new DeviceRequest
-                {
-                    Id = d.Id,
-                    DeviceModel = dm.Name,
-                    Location = l.InstallationAddress,
-                    Modem = m.Brand,
-                    DeviceStatus = ds.Name,
-                    Company = c.Name,
-                    InstallationDate = d.InstallationDate,
-                    LastServiceDate = d.LastServiceDate,
-                    CreatedAt = d.CreatedAt,
-                    UpdatedAt = d.UpdatedAt
-                }
-            };
-        
-        return Ok(await note.ToListAsync());
-    }
+        var eventEntity = await _context.Events
+            .Include(e => e.Device)
+                .ThenInclude(d => d.DeviceModel)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.Modem)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.Location)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.DeviceStatus)
+            .Include(e => e.Device)
+                .ThenInclude(d => d.Company)
+            .FirstOrDefaultAsync(e => e.Id == id);
 
+        if (eventEntity == null)
+            return NotFound();
+
+        var result = new NotesRequest
+        {
+            Id = eventEntity.Id,
+            EventType = eventEntity.EventType ?? "",
+            Description = eventEntity.Description ?? "",
+            PhotoUrl = eventEntity.MediaPath,
+            EventDate = eventEntity.DateTime,
+            Device = eventEntity.Device != null ? new DeviceRequest
+            {
+                Id = eventEntity.Device.Id,
+                DeviceModel = eventEntity.Device.DeviceModel?.Name ?? "Неизвестная модель",
+                Location = eventEntity.Device.Location?.InstallationAddress ?? "Адрес не указан",
+                Modem = eventEntity.Device.Modem?.Brand ?? "Модем не указан",
+                DeviceStatus = eventEntity.Device.DeviceStatus?.Name ?? "Статус неизвестен",
+                Company = eventEntity.Device.Company?.Name ?? "Компания не указана",
+                InstallationDate = eventEntity.Device.InstallationDate,
+                LastServiceDate = eventEntity.Device.LastServiceDate,
+                CreatedAt = eventEntity.Device.CreatedAt,
+                UpdatedAt = eventEntity.Device.UpdatedAt
+            } : null
+        };
+
+        return Ok(result);
+    }
+    
     [HttpPost]
     [SwaggerOperation(Summary = "Создание новой заметки/события")]
     [ProducesResponseType(typeof(Event), StatusCodes.Status201Created)]
@@ -133,37 +178,24 @@ public class EventsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateNoteAsync(int id, [FromBody] NotesRequest request)
     {
-        var existingEvent = await _context.Events
-            .Include(e => e.Device)
-            .FirstOrDefaultAsync(e => e.Id == id);
-
+        var existingEvent = await _context.Events.FindAsync(id);
         if (existingEvent == null)
-        {
             return NotFound();
-        }
 
-        if (request.Id != existingEvent.Id)
-        {
-            return BadRequest("ID события в теле запроса и URL должны совпадать");
-        }
-        
-        existingEvent.EventType = request.EventType;
-        existingEvent.Description = request.Description;
-        existingEvent.MediaPath = request.PhotoUrl;
+        existingEvent.EventType = request.EventType ?? existingEvent.EventType;
+        existingEvent.Description = request.Description ?? existingEvent.Description;
         existingEvent.DateTime = request.EventDate;
+        existingEvent.MediaPath = request.PhotoUrl;
 
-        if (request.Device != null)
+        if (request.Device?.Id != null && request.Device.Id != existingEvent.DeviceId)
         {
-            var device = await _context.Devices
-                .FirstOrDefaultAsync(d => d.Id == request.Device.Id);
-            if (device != null)
-            {
-                existingEvent.DeviceId = device.Id;
-            }
+            var device = await _context.Devices.FindAsync(request.Device.Id);
+            if (device == null) 
+                return BadRequest("Аппарат не найден");
+            existingEvent.DeviceId = device.Id;
         }
 
         await _context.SaveChangesAsync();
-
         return NoContent();
     }
 
