@@ -1,4 +1,5 @@
-﻿using Android.Views;
+﻿using Android.Content;
+using Android.Views;
 using AndroidX.RecyclerView.Widget;
 using Google.Android.Material.Button;
 using Google.Android.Material.TextView;
@@ -31,48 +32,29 @@ public class ArchiveAdapter : RecyclerView.Adapter
         var item = _displayItems[position];
         var vh = holder as ArchiveViewHolder;
 
-        vh!.Type.Text = item?.EventType ?? "Неизвестно";
-        vh.Date.Text = item?.EventDate.ToString();
-        vh.Preview.SetImageResource(Resource.Drawable.ic_logo);
+        vh!.Type.Text = item?.EventType ?? "—";
+        vh.Date.Text = item?.EventDate?.ToString("dd.MM.yyyy HH:mm") ?? "—";
+
+        // Клик по карточке
+        vh.ItemView.Click -= ItemView_Click;
+        vh.ItemView.Click += ItemView_Click;
+
+        void ItemView_Click(object? sender, EventArgs e)
+        {
+            if (item?.Id == null) return;
+
+            var intent = new Intent(vh.ItemView.Context, typeof(NoteActivity));
+            intent.PutExtra("EventId", item.Id);
+            vh.ItemView.Context.StartActivity(intent);
+        }
     }
-
-    public void FilterAndSort(string query)
+    
+    public void UpdateData(List<NotesRequest?> newItems)
     {
+        _originalItems.Clear();
+        _originalItems.AddRange(newItems);
         _displayItems.Clear();
-
-        if (_originalItems == null || _originalItems.Count == 0)
-        {
-            NotifyDataSetChanged();
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            _displayItems.AddRange(_originalItems.Where(x => x != null));
-        }
-        else
-        {
-            query = query.ToLower();
-
-            if (query.Contains("дата") || query.Contains("date"))
-            {
-                _displayItems.AddRange(_originalItems
-                    .Where(x => x?.EventDate != null)
-                    .OrderByDescending(x => x!.EventDate));
-            }
-            else if (query.Contains("тип") || query.Contains("type"))
-            {
-                _displayItems.AddRange(_originalItems
-                    .Where(x => x?.EventType != null)
-                    .OrderBy(x => x!.EventType));
-            }
-            else
-            {
-                _displayItems.AddRange(_originalItems
-                    .Where(x => x?.EventType != null && x.EventType.ToLower().Contains(query)));
-            }
-        }
-
+        _displayItems.AddRange(newItems);
         NotifyDataSetChanged();
     }
 }
