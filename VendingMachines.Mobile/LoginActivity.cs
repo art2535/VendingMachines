@@ -168,11 +168,11 @@ namespace VendingMachines.Mobile
                 /* Адреса для URL API:
                  * 192.168.1.77 - IP-адрес дом
                  * 172.20.10.2 - IP-адрес колледж (телефон iPhone)
-                 * 5221 - порт HTTP
+                 * 5321 - порт HTTP
                  * 7270 - порт HTTPS
                  */
 
-                var response = await httpClient.PostAsync("http://172.20.10.2:5321/api/auth/login", content);
+                var response = await httpClient.PostAsync("http://192.168.1.77:5321/api/auth/login", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -201,6 +201,9 @@ namespace VendingMachines.Mobile
                 Toast.MakeText(this, "Авторизация прошла успешно", ToastLength.Short)?.Show();
 
                 SaveJwtToken(user.Token);
+                
+                var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
+                prefs.Edit().PutString("Email", user.Email).Apply();
 
                 var intent = new Intent(this, typeof(DashboardActivity));
                 StartActivity(intent);
