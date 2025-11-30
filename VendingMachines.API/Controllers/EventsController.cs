@@ -149,8 +149,14 @@ public class EventsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AddNoteAsync([FromBody] NotesRequest request)
     {
-        var device = await _context.Devices
-            .FirstOrDefaultAsync(d => d.Id == request.Device.Id);
+        var deviceId = request.Device?.Id ?? request.DeviceId;
+        if (deviceId == null || deviceId <= 0)
+            return BadRequest("Не указан ID аппарата");
+
+        var device = await _context.Devices.FindAsync(deviceId);
+        if (device == null)
+            return BadRequest($"Аппарат с ID {deviceId} не найден");
+        
         if (device == null)
         {
             return BadRequest($"Аппарат с ID {request.Device.Id} не найден");
@@ -162,7 +168,7 @@ public class EventsController : ControllerBase
             EventType = request.EventType,
             Description = request.Description,
             MediaPath = request.PhotoUrl,
-            DateTime = request.EventDate
+            DateTime = request.EventDate ?? DateTime.UtcNow
         };
 
         _context.Events.Add(newEvent);
@@ -182,6 +188,15 @@ public class EventsController : ControllerBase
         if (existingEvent == null)
             return NotFound();
 
+        var targetDeviceId = request.Device?.Id ?? request.DeviceId ?? existingEvent.DeviceId;
+        if (targetDeviceId != existingEvent.DeviceId)
+        {
+            var device = await _context.Devices.FindAsync(targetDeviceId);
+            if (device == null)
+                return BadRequest("Аппарат не найден");
+            existingEvent.DeviceId = targetDeviceId;
+        }
+        
         existingEvent.EventType = request.EventType ?? existingEvent.EventType;
         existingEvent.Description = request.Description ?? existingEvent.Description;
         existingEvent.DateTime = request.EventDate;
