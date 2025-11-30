@@ -11,7 +11,6 @@ using Google.Android.Material.FloatingActionButton;
 using Google.Android.Material.TextField;
 using VendingMachines.Mobile.DTOs;
 using Uri = Android.Net.Uri;
-using File = Java.IO.File;
 
 namespace VendingMachines.Mobile;
 
@@ -30,7 +29,7 @@ public class NoteActivity : BaseActivity
 
     private Uri? _selectedMediaUri;
     private string? _localFilePath;
-    private string? _deviceInfoHint; // только для умного серого hint
+    private string? _deviceInfoHint;
 
     private const int REQUEST_PICK_MEDIA = 200;
 
@@ -127,7 +126,7 @@ public class NoteActivity : BaseActivity
             _body.TextChanged -= OnBodyTextChanged;
             _body.TextChanged += OnBodyTextChanged;
 
-            _body.Text = ""; // поле пустое — пользователь пишет сам
+            _body.Text = "";
             UpdateBodyHint();
         });
     }
@@ -226,10 +225,8 @@ public class NoteActivity : BaseActivity
 
         _title.Text = _currentEvent.EventType ?? "—";
 
-        // Сохраняем только пользовательское описание — без данных аппарата!
         var userDescription = _currentEvent.Description?.Trim() ?? "";
 
-        // Формируем данные аппарата только для hint
         var deviceInfo = new StringBuilder();
         if (_currentEvent.Device != null)
         {
@@ -242,10 +239,8 @@ public class NoteActivity : BaseActivity
 
         _deviceInfoHint = deviceInfo.ToString().Trim();
 
-        // В поле — только то, что написал пользователь
         _body.Text = userDescription;
 
-        // Фото
         if (!string.IsNullOrEmpty(_currentEvent.PhotoUrl) && System.IO.File.Exists(_currentEvent.PhotoUrl))
         {
             _photoPreview.Visibility = ViewStates.Visible;
@@ -266,7 +261,6 @@ public class NoteActivity : BaseActivity
             _placeholderAddPhoto.Visibility = ViewStates.Visible;
         }
 
-        // Подключаем умный hint
         _body.TextChanged -= OnBodyTextChanged;
         _body.TextChanged += OnBodyTextChanged;
         UpdateBodyHint();
@@ -291,7 +285,7 @@ public class NoteActivity : BaseActivity
         _fabCancel.SetImageResource(Resource.Drawable.ic_cancel);
         Title = "Редактирование";
 
-        _body.TextChanged += OnBodyTextChanged; // гарантируем, что подписаны
+        _body.TextChanged += OnBodyTextChanged;
         UpdateBodyHint();
     }
 
@@ -370,7 +364,7 @@ public class NoteActivity : BaseActivity
         {
             Id = _currentEvent.Id,
             EventType = _title.Text?.Trim() ?? "",
-            Description = _body.Text?.Trim(), // только пользовательский текст
+            Description = _body.Text?.Trim(),
             EventDate = _currentEvent.EventDate,
             PhotoUrl = _localFilePath ?? _currentEvent.PhotoUrl,
             Device = _currentEvent.Device

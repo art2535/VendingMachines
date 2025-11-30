@@ -1,5 +1,4 @@
 using Android.Content;
-using Android.Widget;
 using Google.Android.Material.AppBar;
 using Google.Android.Material.Card;
 using System.Net.Http.Headers;
@@ -25,16 +24,13 @@ public class DashboardActivity : BaseActivity
         var toolbar = FindViewById<MaterialToolbar>(Resource.Id.toolbar_main);
         toolbar!.MenuItemClick += DashboardMenu_MenuItemClick;
 
-        // Кнопки камеры
-        FindViewById<MaterialCardView>(Resource.Id.card_photo)!.Click += (_, __) => OpenCamera("photo");
-        FindViewById<MaterialCardView>(Resource.Id.card_video)!.Click += (_, __) => OpenCamera("video");
+        FindViewById<MaterialCardView>(Resource.Id.card_photo)!.Click += (_, _) => OpenCamera("photo");
+        FindViewById<MaterialCardView>(Resource.Id.card_video)!.Click += (_, _) => OpenCamera("video");
 
-        // Архив
-        FindViewById<MaterialCardView>(Resource.Id.card_archive)!.Click += (_, __) =>
+        FindViewById<MaterialCardView>(Resource.Id.card_archive)!.Click += (_, _) =>
             StartActivity(typeof(ArchiveActivity));
 
-        // Создать заметку — теперь с выбором аппарата
-        FindViewById<MaterialCardView>(Resource.Id.card_note)!.Click += async (_, __) =>
+        FindViewById<MaterialCardView>(Resource.Id.card_note)!.Click += async (_, _) =>
             await OpenNewNoteWithDevicePicker();
     }
 
@@ -75,7 +71,6 @@ public class DashboardActivity : BaseActivity
                 DeviceModel = dto.Model,
                 Location = dto.Address,
                 Company = dto.Company
-                // остальные поля можно оставить null — они не нужны для новой заметки
             }).ToList();
 
             var displayItems = wrapper.Items.Select(d =>
@@ -91,7 +86,6 @@ public class DashboardActivity : BaseActivity
                     intent.PutExtra("DeviceId", selectedDevice.Id);
                     intent.PutExtra("IsNewNote", true);
 
-                    // Передаём сразу весь объект — так NoteActivity не будет делать лишний запрос!
                     intent.PutExtra("SelectedDevice", JsonSerializer.Serialize(selectedDevice));
 
                     StartActivity(intent);
@@ -110,10 +104,6 @@ public class DashboardActivity : BaseActivity
     {
         switch (e.Item.ItemId)
         {
-            case Resource.Id.action_settings:
-                StartActivity(typeof(SettingsActivity));
-                break;
-
             case Resource.Id.action_logout:
                 if (await LogoutAsync())
                 {
