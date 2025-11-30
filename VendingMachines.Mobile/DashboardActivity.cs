@@ -1,12 +1,17 @@
 using Android.Content;
+using Android.Widget;
 using Google.Android.Material.AppBar;
 using Google.Android.Material.Card;
 using System.Net.Http.Headers;
+using System.Text.Json;
+using Android.Util;
+using VendingMachines.Mobile.DTOs;
 using static AndroidX.AppCompat.Widget.Toolbar;
+using AlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace VendingMachines.Mobile;
 
-[Activity(Label = "@string/app_name")]
+[Activity(Label = "@string/app_name", MainLauncher = false)]
 public class DashboardActivity : BaseActivity
 {
     protected override int ToolbarTitleResourceId => Resource.String.app_name;
@@ -17,26 +22,87 @@ public class DashboardActivity : BaseActivity
         base.OnCreate(savedInstanceState);
         SetContentView(Resource.Layout.activity_dashboard);
 
-        var dashboardMenu = FindViewById<MaterialToolbar>(Resource.Id.toolbar_main);
-        if (dashboardMenu != null)
+        var toolbar = FindViewById<MaterialToolbar>(Resource.Id.toolbar_main);
+        toolbar!.MenuItemClick += DashboardMenu_MenuItemClick;
+
+        // Кнопки камеры
+        FindViewById<MaterialCardView>(Resource.Id.card_photo)!.Click += (_, __) => OpenCamera("photo");
+        FindViewById<MaterialCardView>(Resource.Id.card_video)!.Click += (_, __) => OpenCamera("video");
+
+        // Архив
+        FindViewById<MaterialCardView>(Resource.Id.card_archive)!.Click += (_, __) =>
+            StartActivity(typeof(ArchiveActivity));
+
+        // Создать заметку — теперь с выбором аппарата
+        FindViewById<MaterialCardView>(Resource.Id.card_note)!.Click += async (_, __) =>
+            await OpenNewNoteWithDevicePicker();
+    }
+
+    private async Task OpenNewNoteWithDevicePicker()
+    {
+        var token = GetJwtToken();
+        if (string.IsNullOrEmpty(token))
         {
-            dashboardMenu.MenuItemClick += DashboardMenu_MenuItemClick;
+            Toast.MakeText(this, "Не авторизован", ToastLength.Short)?.Show();
+            return;
         }
 
-        var photoCardView = FindViewById<MaterialCardView>(Resource.Id.card_photo);
-        var videoCardView = FindViewById<MaterialCardView>(Resource.Id.card_video);
-        if (photoCardView != null && videoCardView != null)
+        try
         {
-            photoCardView.Click += (sender, e) => OpenCamera("photo");
-            videoCardView.Click += (sender, e) => OpenCamera("video");
-        }
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var archiveCardView = FindViewById<MaterialCardView>(Resource.Id.card_archive);
-        var noteCardView = FindViewById<MaterialCardView>(Resource.Id.card_note);
-        if (archiveCardView != null && noteCardView != null)
+            var response = await client.GetAsync("http://192.168.1.77:5321/api/devices");
+            if (!response.IsSuccessStatusCode)
+            {
+                Toast.MakeText(this, "Не удалось загрузить аппараты", ToastLength.Short)?.Show();
+                return;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var wrapper = JsonSerializer.Deserialize<DevicesResponse>(json, options);
+            if (wrapper?.Items == null || wrapper.Items.Count == 0)
+            {
+                Toast.MakeText(this, "Нет доступных аппаратов", ToastLength.Short)?.Show();
+                return;
+            }
+
+            var devices = wrapper.Items.Select(dto => new DeviceRequest
+            {
+                Id = dto.Id,
+                DeviceModel = dto.Model,
+                Location = dto.Address,
+                Company = dto.Company
+                // остальные поля можно оставить null — они не нужны для новой заметки
+            }).ToList();
+
+            var displayItems = wrapper.Items.Select(d =>
+                $"{d.Model}\n{d.Address}\n{d.Company}").ToArray();
+
+            new AlertDialog.Builder(this)
+                .SetTitle("Выберите аппарат")
+                .SetItems(displayItems, (s, args) =>
+                {
+                    var selectedDevice = devices[args.Which];
+
+                    var intent = new Intent(this, typeof(NoteActivity));
+                    intent.PutExtra("DeviceId", selectedDevice.Id);
+                    intent.PutExtra("IsNewNote", true);
+
+                    // Передаём сразу весь объект — так NoteActivity не будет делать лишний запрос!
+                    intent.PutExtra("SelectedDevice", JsonSerializer.Serialize(selectedDevice));
+
+                    StartActivity(intent);
+                })
+                .SetNegativeButton("Отмена", (s, e) => { })
+                .Show();
+        }
+        catch (Exception ex)
         {
-            archiveCardView.Click += (sender, e) => StartActivity(typeof(ArchiveActivity));
-            noteCardView.Click += (sender, e) => StartActivity(typeof(NoteActivity));
+            Log.Error("Dashboard", ex.ToString());
+            Toast.MakeText(this, "Ошибка загрузки", ToastLength.Short)?.Show();
         }
     }
 
@@ -47,6 +113,7 @@ public class DashboardActivity : BaseActivity
             case Resource.Id.action_settings:
                 StartActivity(typeof(SettingsActivity));
                 break;
+
             case Resource.Id.action_logout:
                 if (await LogoutAsync())
                 {
@@ -61,33 +128,27 @@ public class DashboardActivity : BaseActivity
 
     private async Task<bool> LogoutAsync()
     {
-        using (var httpClient = new HttpClient())
+        using var httpClient = new HttpClient();
+        var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
+        var token = prefs.GetString("JWT_TOKEN", null);
+
+        if (string.IsNullOrEmpty(token))
         {
-            var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
-            var token = prefs?.GetString("JWT_TOKEN", null);
-
-            if (string.IsNullOrEmpty(token))
-            {
-                Toast.MakeText(this, "Токен пуст", ToastLength.Short)?.Show();
-                return false;
-            }
-
-            httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token);
-
-            var response = await httpClient.PostAsync("http://192.168.1.77:5321/api/auth/logout", null);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Toast.MakeText(this, $"Ошибка сервера: {response.StatusCode}", ToastLength.Short)?.Show();
-                return false;
-            }
-
-            var editor = prefs?.Edit();
-            editor?.Remove("JWT_TOKEN");
-            editor?.Apply();
+            Toast.MakeText(this, "Токен отсутствует", ToastLength.Short)?.Show();
+            return false;
         }
 
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await httpClient.PostAsync("http://192.168.1.77:5321/api/auth/logout", null);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Toast.MakeText(this, "Ошибка выхода", ToastLength.Short)?.Show();
+            return false;
+        }
+
+        prefs.Edit()?.Remove("JWT_TOKEN")?.Apply();
         return true;
     }
 }
