@@ -11,23 +11,26 @@ using Google.Android.Material.FloatingActionButton;
 using Google.Android.Material.TextField;
 using VendingMachines.Mobile.DTOs;
 using Uri = Android.Net.Uri;
+using File = Java.IO.File;
 
 namespace VendingMachines.Mobile;
 
 [Activity(Label = "@string/app_name")]
 public class NoteActivity : BaseActivity
 {
-    private TextInputEditText _title, _body;
-    private ImageView _photoPreview;
-    private View _placeholderAddPhoto;
-    private FloatingActionButton _fabSave, _fabCancel;
+    private TextInputEditText _title = null!;
+    private TextInputEditText _body = null!;
+    private ImageView _photoPreview = null!;
+    private View _placeholderAddPhoto = null!;
+    private FloatingActionButton _fabSave = null!;
+    private FloatingActionButton _fabCancel = null!;
 
     private NotesRequest? _currentEvent;
     private bool _isEditMode = false;
 
     private Uri? _selectedMediaUri;
-    private bool _isVideoSelected = false;
     private string? _localFilePath;
+    private string? _deviceInfoHint; // только для умного серого hint
 
     private const int REQUEST_PICK_MEDIA = 200;
 
@@ -39,20 +42,7 @@ public class NoteActivity : BaseActivity
         base.OnCreate(savedInstanceState);
         SetContentView(Resource.Layout.activity_note);
 
-        _title = FindViewById<TextInputEditText>(Resource.Id.title)!;
-        _body = FindViewById<TextInputEditText>(Resource.Id.body)!;
-        _photoPreview = FindViewById<ImageView>(Resource.Id.photo_preview)!;
-        _placeholderAddPhoto = FindViewById(Resource.Id.placeholder_add_photo)!;
-        _fabSave = FindViewById<FloatingActionButton>(Resource.Id.fab_save)!;
-        _fabCancel = FindViewById<FloatingActionButton>(Resource.Id.fab_cancel)!;
-
-        var eventId = Intent?.GetIntExtra("EventId", -1) ?? -1;
-        if (eventId == -1)
-        {
-            Toast.MakeText(this, "Ошибка: событие не выбрано", ToastLength.Long)?.Show();
-            Finish();
-            return;
-        }
+        InitializeViews();
 
         var token = GetJwtToken();
         if (string.IsNullOrEmpty(token))
@@ -61,35 +51,363 @@ public class NoteActivity : BaseActivity
             return;
         }
 
-        _currentEvent = await LoadEventAsync(token, eventId);
-        if (_currentEvent == null)
+        var eventId = Intent?.GetIntExtra("EventId", -1) ?? -1;
+        var deviceId = Intent?.GetIntExtra("DeviceId", -1) ?? -1;
+        var isNewNote = Intent?.GetBooleanExtra("IsNewNote", false) == true;
+
+        if (isNewNote && deviceId > 0)
         {
-            Toast.MakeText(this, "Ошибка загрузки события", ToastLength.Long)?.Show();
+            Title = "Новая заметка";
+            _isEditMode = true;
+
+            _title.Enabled = true;
+            _body.Enabled = true;
+
+            _fabSave.SetImageResource(Resource.Drawable.ic_add);
+            _fabCancel.SetImageResource(Resource.Drawable.ic_cancel);
+
+            var deviceJson = Intent?.GetStringExtra("SelectedDevice");
+            DeviceRequest? device = null;
+
+            if (!string.IsNullOrEmpty(deviceJson))
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                device = JsonSerializer.Deserialize<DeviceRequest>(deviceJson, options);
+            }
+
+            if (device == null)
+            {
+                await LoadAndDisplayDeviceInfoAsync(token, deviceId);
+            }
+            else
+            {
+                _currentEvent = new NotesRequest
+                {
+                    Device = device,
+                    EventDate = DateTime.Now
+                };
+                ShowDeviceAsHint(device);
+            }
+        }
+        else if (eventId > 0)
+        {
+            _currentEvent = await LoadEventAsync(token, eventId);
+            if (_currentEvent == null)
+            {
+                Toast.MakeText(this, "Ошибка загрузки события", ToastLength.Long)?.Show();
+                Finish();
+                return;
+            }
+
+            FillFormForExistingEvent();
+            EnterViewMode();
+        }
+        else
+        {
+            Toast.MakeText(this, "Ошибка: не указан аппарат или событие", ToastLength.Short)?.Show();
             Finish();
             return;
         }
 
-        FillForm();
+        SetupClickListeners();
+    }
 
+    private void ShowDeviceAsHint(DeviceRequest device)
+    {
+        RunOnUiThread(() =>
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"Модель: {device.DeviceModel ?? "—"}");
+            sb.AppendLine($"Адрес: {device.Location ?? "—"}");
+            sb.AppendLine($"Компания: {device.Company ?? "—"}");
+            sb.AppendLine($"Дата события: {DateTime.Now:dd.MM.yyyy HH:mm}");
+
+            _deviceInfoHint = sb.ToString().Trim();
+
+            _body.TextChanged -= OnBodyTextChanged;
+            _body.TextChanged += OnBodyTextChanged;
+
+            _body.Text = ""; // поле пустое — пользователь пишет сам
+            UpdateBodyHint();
+        });
+    }
+
+    private void OnBodyTextChanged(object? sender, Android.Text.TextChangedEventArgs e)
+    {
+        UpdateBodyHint();
+    }
+
+    private void UpdateBodyHint()
+    {
+        if (!string.IsNullOrWhiteSpace(_body.Text))
+        {
+            _body.Hint = "Описание";
+        }
+        else if (!string.IsNullOrWhiteSpace(_deviceInfoHint))
+        {
+            _body.Hint = _deviceInfoHint;
+            _body.SetHintTextColor(Color.ParseColor("#8A000000"));
+        }
+        else
+        {
+            _body.Hint = "Описание";
+        }
+    }
+
+    private void InitializeViews()
+    {
+        _title = FindViewById<TextInputEditText>(Resource.Id.title)!;
+        _body = FindViewById<TextInputEditText>(Resource.Id.body)!;
+        _photoPreview = FindViewById<ImageView>(Resource.Id.photo_preview)!;
+        _placeholderAddPhoto = FindViewById(Resource.Id.placeholder_add_photo)!;
+        _fabSave = FindViewById<FloatingActionButton>(Resource.Id.fab_save)!;
+        _fabCancel = FindViewById<FloatingActionButton>(Resource.Id.fab_cancel)!;
+    }
+
+    private void SetupClickListeners()
+    {
         _fabSave.Click += async (s, e) =>
         {
-            if (_isEditMode) await SaveChangesAsync();
-            else EnterEditMode();
+            var isNew = Intent?.GetBooleanExtra("IsNewNote", false) == true;
+
+            if (isNew)
+                await CreateNewNoteAsync();
+            else if (_isEditMode)
+                await SaveChangesAsync();
+            else
+                EnterEditMode();
         };
 
         _fabCancel.Click += (s, e) =>
         {
-            if (_isEditMode) CancelEdit();
-            else Finish();
+            var isNew = Intent?.GetBooleanExtra("IsNewNote", false) == true;
+
+            if (isNew)
+                Finish();
+            else if (_isEditMode)
+                CancelEdit();
+            else
+                Finish();
         };
 
         _photoPreview.Click += (s, e) => OpenGalleryPicker();
         _placeholderAddPhoto.Click += (s, e) => OpenGalleryPicker();
     }
 
+    private async Task LoadAndDisplayDeviceInfoAsync(string token, int deviceId)
+    {
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.GetAsync($"http://192.168.1.77:5321/api/devices/{deviceId}");
+            if (!response.IsSuccessStatusCode) return;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var device = JsonSerializer.Deserialize<DeviceRequest>(json, options);
+
+            if (device != null && _currentEvent != null)
+            {
+                _currentEvent.Device = device;
+                ShowDeviceAsHint(device);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("NoteActivity", "Ошибка загрузки данных аппарата: " + ex);
+        }
+    }
+
+    private void FillFormForExistingEvent()
+    {
+        if (_currentEvent == null) return;
+
+        _title.Text = _currentEvent.EventType ?? "—";
+
+        // Сохраняем только пользовательское описание — без данных аппарата!
+        var userDescription = _currentEvent.Description?.Trim() ?? "";
+
+        // Формируем данные аппарата только для hint
+        var deviceInfo = new StringBuilder();
+        if (_currentEvent.Device != null)
+        {
+            deviceInfo.AppendLine($"Модель: {_currentEvent.Device.DeviceModel ?? "—"}");
+            deviceInfo.AppendLine($"Адрес: {_currentEvent.Device.Location ?? "—"}");
+            deviceInfo.AppendLine($"Компания: {_currentEvent.Device.Company ?? "—"}");
+            if (_currentEvent.EventDate != default)
+                deviceInfo.AppendLine($"Дата события: {_currentEvent.EventDate:dd.MM.yyyy HH:mm}");
+        }
+
+        _deviceInfoHint = deviceInfo.ToString().Trim();
+
+        // В поле — только то, что написал пользователь
+        _body.Text = userDescription;
+
+        // Фото
+        if (!string.IsNullOrEmpty(_currentEvent.PhotoUrl) && System.IO.File.Exists(_currentEvent.PhotoUrl))
+        {
+            _photoPreview.Visibility = ViewStates.Visible;
+            _placeholderAddPhoto.Visibility = ViewStates.Gone;
+            try
+            {
+                var bitmap = BitmapFactory.DecodeFile(_currentEvent.PhotoUrl);
+                _photoPreview.SetImageBitmap(bitmap);
+            }
+            catch
+            {
+                _photoPreview.SetImageResource(Resource.Drawable.ic_no_photo);
+            }
+        }
+        else
+        {
+            _photoPreview.Visibility = ViewStates.Gone;
+            _placeholderAddPhoto.Visibility = ViewStates.Visible;
+        }
+
+        // Подключаем умный hint
+        _body.TextChanged -= OnBodyTextChanged;
+        _body.TextChanged += OnBodyTextChanged;
+        UpdateBodyHint();
+    }
+
+    private void EnterViewMode()
+    {
+        _isEditMode = false;
+        _title.Enabled = false;
+        _body.Enabled = false;
+        _fabSave.SetImageResource(Resource.Drawable.ic_edit);
+        _fabCancel.SetImageResource(Resource.Drawable.ic_cancel);
+        Title = "Событие";
+    }
+
+    private void EnterEditMode()
+    {
+        _isEditMode = true;
+        _title.Enabled = true;
+        _body.Enabled = true;
+        _fabSave.SetImageResource(Resource.Drawable.ic_add);
+        _fabCancel.SetImageResource(Resource.Drawable.ic_cancel);
+        Title = "Редактирование";
+
+        _body.TextChanged += OnBodyTextChanged; // гарантируем, что подписаны
+        UpdateBodyHint();
+    }
+
+    private void CancelEdit()
+    {
+        if (Intent?.GetBooleanExtra("IsNewNote", false) == true)
+        {
+            Finish();
+            return;
+        }
+
+        _isEditMode = false;
+        _title.Enabled = false;
+        _body.Enabled = false;
+        _fabSave.SetImageResource(Resource.Drawable.ic_edit);
+        _fabCancel.SetImageResource(Resource.Drawable.ic_cancel);
+        FillFormForExistingEvent();
+        Title = "Событие";
+    }
+
+    private async Task CreateNewNoteAsync()
+    {
+        if (_currentEvent?.Device?.Id == null) return;
+
+        var token = GetJwtToken();
+        if (string.IsNullOrEmpty(token)) return;
+
+        var newEvent = new NotesRequest
+        {
+            EventType = _title.Text?.Trim() ?? "Без типа",
+            Description = _body.Text?.Trim(),
+            EventDate = DateTime.UtcNow,
+            PhotoUrl = _localFilePath,
+            DeviceId = _currentEvent.Device.Id,
+            Device = null
+        };
+        
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.PostAsJsonAsync("http://192.168.1.77:5321/api/events", newEvent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.MakeText(this, "Заметка создана!", ToastLength.Long)?.Show();
+                var intent = new Intent(this, typeof(ArchiveActivity));
+                intent.AddFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
+                intent.PutExtra("RefreshArchive", true);
+                StartActivity(intent);
+                Finish();
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Log.Error("NoteActivity", err);
+                Toast.MakeText(this, $"Ошибка создания: {err}", ToastLength.Long)?.Show();
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.MakeText(this, "Ошибка сети", ToastLength.Long)?.Show();
+            Log.Error("CreateNote", ex.ToString());
+        }
+    }
+
+    private async Task SaveChangesAsync()
+    {
+        if (_currentEvent == null) return;
+
+        var token = GetJwtToken();
+        if (string.IsNullOrEmpty(token)) return;
+
+        var updated = new NotesRequest
+        {
+            Id = _currentEvent.Id,
+            EventType = _title.Text?.Trim() ?? "",
+            Description = _body.Text?.Trim(), // только пользовательский текст
+            EventDate = _currentEvent.EventDate,
+            PhotoUrl = _localFilePath ?? _currentEvent.PhotoUrl,
+            Device = _currentEvent.Device
+        };
+
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.PutAsJsonAsync(
+                $"http://192.168.1.77:5321/api/events/{_currentEvent.Id}", updated);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Toast.MakeText(this, "Сохранено!", ToastLength.Long)?.Show();
+                var intent = new Intent(this, typeof(ArchiveActivity));
+                intent.AddFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
+                intent.PutExtra("RefreshArchive", true);
+                StartActivity(intent);
+                Finish();
+            }
+            else
+            {
+                Toast.MakeText(this, "Ошибка сохранения", ToastLength.Long)?.Show();
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.MakeText(this, "Ошибка сети", ToastLength.Long)?.Show();
+            Log.Error("SaveNote", ex.ToString());
+        }
+    }
+
     private void OpenGalleryPicker()
     {
-        if (!_isEditMode)
+        if (!_isEditMode && Intent?.GetBooleanExtra("IsNewNote", false) != true)
         {
             Toast.MakeText(this, "Включите режим редактирования", ToastLength.Short)?.Show();
             return;
@@ -105,7 +423,7 @@ public class NoteActivity : BaseActivity
         }
         catch (Exception ex)
         {
-            Log.Error("Gallery", "Ошибка: " + ex);
+            Log.Error("Gallery", ex.ToString());
             Toast.MakeText(this, "Галерея недоступна", ToastLength.Short)?.Show();
         }
     }
@@ -121,11 +439,9 @@ public class NoteActivity : BaseActivity
 
             if (string.IsNullOrEmpty(_localFilePath))
             {
-                Toast.MakeText(this, "Не удалось получить путь к файлу", ToastLength.Long)?.Show();
+                Toast.MakeText(this, "Не удалось получить файл", ToastLength.Long)?.Show();
                 return;
             }
-
-            AddMediaToGallery(_localFilePath, false);
 
             _photoPreview.Visibility = ViewStates.Visible;
             _placeholderAddPhoto.Visibility = ViewStates.Gone;
@@ -135,101 +451,10 @@ public class NoteActivity : BaseActivity
                 var bitmap = BitmapFactory.DecodeFile(_localFilePath);
                 _photoPreview.SetImageBitmap(bitmap);
             }
-            catch (Exception ex)
+            catch
             {
-                Log.Error("Preview", ex.ToString());
                 _photoPreview.SetImageResource(Resource.Drawable.ic_logo);
             }
-
-            if (!_isEditMode) EnterEditMode();
-        }
-    }
-
-    private void FillForm()
-    {
-        if (_currentEvent == null) return;
-
-        _title.Text = _currentEvent.EventType ?? "—";
-
-        var description = _currentEvent.Description ?? "—";
-        var deviceInfo = new StringBuilder();
-
-        if (_currentEvent.Device != null)
-        {
-            deviceInfo.AppendLine($"Модель: {_currentEvent.Device.DeviceModel}");
-            deviceInfo.AppendLine($"Адрес: {_currentEvent.Device.Location}");
-            deviceInfo.AppendLine($"Компания: {_currentEvent.Device.Company}");
-            if (_currentEvent.Device.DeviceStatus != null)
-                deviceInfo.AppendLine($"Статус: {_currentEvent.Device.DeviceStatus}");
-        }
-
-        if (_currentEvent.EventDate != default)
-            deviceInfo.AppendLine($"Дата события: {_currentEvent.EventDate:dd.MM.yyyy HH:mm}");
-
-        if (!description.Contains("Модель:") && deviceInfo.Length > 0)
-            _body.Text = $"{description}\n\n{deviceInfo}";
-        else
-            _body.Text = description;
-
-        if (!string.IsNullOrEmpty(_currentEvent.PhotoUrl) && File.Exists(_currentEvent.PhotoUrl))
-        {
-            _photoPreview.Visibility = ViewStates.Visible;
-            _placeholderAddPhoto.Visibility = ViewStates.Gone;
-            _photoPreview.SetImageBitmap(BitmapFactory.DecodeFile(_currentEvent.PhotoUrl));
-        }
-        else
-        {
-            _photoPreview.Visibility = ViewStates.Gone;
-            _placeholderAddPhoto.Visibility = ViewStates.Visible;
-        }
-    }
-
-    private async Task SaveChangesAsync()
-    {
-        if (_currentEvent == null) return;
-
-        var token = GetJwtToken();
-        if (string.IsNullOrEmpty(token)) return;
-
-        try
-        {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var updatedEvent = new NotesRequest
-            {
-                Id = _currentEvent.Id,
-                EventType = _title.Text?.Trim() ?? "",
-                Description = _body.Text?.Trim() ?? "",
-                EventDate = _currentEvent.EventDate,
-                Device = _currentEvent.Device,
-                PhotoUrl = _localFilePath ?? _currentEvent.PhotoUrl
-            };
-
-            var response = await client.PutAsJsonAsync(
-                $"http://192.168.1.77:5321/api/events/{_currentEvent.Id}", updatedEvent);
-
-            if (response.IsSuccessStatusCode)
-            {
-                Toast.MakeText(this, "Сохранено!", ToastLength.Long)?.Show();
-
-                var intent = new Intent(this, typeof(ArchiveActivity));
-                intent.AddFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
-                intent.PutExtra("RefreshArchive", true);
-                StartActivity(intent);
-                Finish();
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                Log.Error("Save", $"Ошибка: {response.StatusCode} — {error}");
-                Toast.MakeText(this, "Ошибка сохранения", ToastLength.Long)?.Show();
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error("Save", ex.ToString());
-            Toast.MakeText(this, "Ошибка сети", ToastLength.Long)?.Show();
         }
     }
 
@@ -240,35 +465,13 @@ public class NoteActivity : BaseActivity
             var cursor = ContentResolver?.Query(uri, null, null, null, null);
             if (cursor?.MoveToFirst() == true)
             {
-                var pathIndex = cursor.GetColumnIndex(MediaStore.Images.ImageColumns.Data);
-                if (pathIndex != -1)
-                    return cursor.GetString(pathIndex);
+                var idx = cursor.GetColumnIndex(MediaStore.Images.ImageColumns.Data);
+                if (idx != -1) return cursor.GetString(idx);
             }
+            cursor?.Close();
         }
         catch { }
         return uri.Path;
-    }
-
-    private void EnterEditMode()
-    {
-        _isEditMode = true;
-        _title.Enabled = true;
-        _body.Enabled = true;
-        _fabSave.SetImageResource(Resource.Drawable.ic_add);
-        _fabCancel.SetImageResource(Resource.Drawable.ic_cancel);
-        Title = "Редактирование";
-    }
-
-    private void CancelEdit()
-    {
-        _isEditMode = false;
-        _title.Enabled = false;
-        _body.Enabled = false;
-        _fabSave.SetImageResource(Resource.Drawable.ic_edit);
-        _fabCancel.SetImageResource(Resource.Drawable.ic_cancel);
-        _selectedMediaUri = null;
-        FillForm();
-        Title = "Событие";
     }
 
     private async Task<NotesRequest?> LoadEventAsync(string token, int id)
@@ -277,13 +480,12 @@ public class NoteActivity : BaseActivity
         {
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var response = await client.GetAsync($"http://192.168.1.77:5321/api/events/{id}");
-            if (!response.IsSuccessStatusCode) 
-                return null;
-            
-            var json = await response.Content.ReadAsStringAsync();
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            return JsonSerializer.Deserialize<NotesRequest>(json, options);
+            var resp = await client.GetAsync($"http://192.168.1.77:5321/api/events/{id}");
+            if (!resp.IsSuccessStatusCode) return null;
+
+            var json = await resp.Content.ReadAsStringAsync();
+            var opt = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            return JsonSerializer.Deserialize<NotesRequest>(json, opt);
         }
         catch (Exception ex)
         {

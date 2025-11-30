@@ -30,8 +30,7 @@
 						android:layout_width="match_parent"
 						android:layout_height="wrap_content"
 						android:hint="Тип события"
-						android:inputType="textCapSentences"
-						android:enabled="false" />
+						android:inputType="textCapSentences"/>
 			</com.google.android.material.textfield.TextInputLayout>
 
 			<!-- Описание -->
@@ -46,10 +45,8 @@
 						android:layout_width="match_parent"
 						android:layout_height="200dp"
 						android:gravity="top|start"
-						android:hint="Описание"
 						android:inputType="textMultiLine|textCapSentences"
-						android:scrollbars="vertical"
-						android:enabled="false" />
+						android:scrollbars="vertical"/>
 			</com.google.android.material.textfield.TextInputLayout>
 
 			<!-- БЛОК С ФОТО — ГЛАВНОЕ -->
