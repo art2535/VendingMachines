@@ -8,4 +8,6 @@ public class NotesRequest
     public string? PhotoUrl { get; set; }
     public DateTime? EventDate { get; set; }
     public DeviceRequest? Device { get; set; } = new();
+    
+    public int? DeviceId { get; set; }
 }
