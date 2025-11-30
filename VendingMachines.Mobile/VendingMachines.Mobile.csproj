@@ -24,10 +24,4 @@
       <HintPath>..\..\..\..\..\Program Files\NuGetPackagesCache\system.identitymodel.tokens.jwt\8.14.0\lib\net9.0\System.IdentityModel.Tokens.Jwt.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <AndroidResource Update="Resources\layout\activity_settings.xml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:UpdateGeneratedFiles</Generator>
-    </AndroidResource>
-  </ItemGroup>
 </Project>
