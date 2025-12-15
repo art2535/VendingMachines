@@ -62,21 +62,32 @@ namespace VendingMachines.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> RegisterAsync([FromBody] RegisterRequest request)
         {
-            if (request.Password != request.RepeatPassword)
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Пароли не совпадают");
+                var errorMessage = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .FirstOrDefault()?.ErrorMessage ?? "Ошибка валидации";
+
+                return BadRequest(errorMessage);
             }
 
             var user = new User
             {
+                LastName = request.LastName,
+                FirstName = request.FirstName,
+                MiddleName = request.MiddleName,
                 Email = request.Email,
-                HashedPassword = request.Password
+                Phone = request.Phone,
+                HashedPassword = request.Password,
+                RoleId = request.RoleId,
+                CompanyId = request.CompanyId,
+                Language = request.Language
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return Ok(user);
         }
 
         [HttpPost("login")]
