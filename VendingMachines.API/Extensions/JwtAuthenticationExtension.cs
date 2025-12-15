@@ -47,12 +47,12 @@ namespace VendingMachines.API.Extensions
                     {
                         OnMessageReceived = context =>
                         {
-                            var token = context.Request.Cookies["jwt_token"];
-                            if (!string.IsNullOrEmpty(token))
+                            var token = context.Request.Query["jwt_token"];
+                            if (string.IsNullOrEmpty(token))
                             {
-                                context.Token = token;
+                                token = context.Request.Cookies["jwt_token"];
                             }
-
+                            context.Token = token;
                             return Task.CompletedTask;
                         }
                     };
