@@ -17,6 +17,9 @@ obj/
 *.userosscache
 *.sln.docstates
 
+# User data folders
+Приложение 6. Ресурсы/
+
 # Auto-generated files
 *.Designer.cs
 *.generated.cs
