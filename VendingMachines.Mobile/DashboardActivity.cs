@@ -22,7 +22,6 @@ public class DashboardActivity : BaseActivity
         SetContentView(Resource.Layout.activity_dashboard);
 
         var toolbar = FindViewById<MaterialToolbar>(Resource.Id.toolbar_main);
-        //toolbar!.MenuItemClick += DashboardMenu_MenuItemClick;
 
         FindViewById<MaterialCardView>(Resource.Id.card_photo)!.Click += (_, _) => OpenCamera("photo");
         FindViewById<MaterialCardView>(Resource.Id.card_video)!.Click += (_, _) => OpenCamera("video");

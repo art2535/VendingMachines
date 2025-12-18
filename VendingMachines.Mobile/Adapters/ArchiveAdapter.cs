@@ -6,19 +6,21 @@ using AndroidX.RecyclerView.Widget;
 using Google.Android.Material.Button;
 using Google.Android.Material.TextView;
 using VendingMachines.Mobile.DTOs;
+using AlertDialog = AndroidX.AppCompat.App.AlertDialog;
 
 namespace VendingMachines.Mobile.Adapters;
 
 public class ArchiveAdapter : RecyclerView.Adapter
 {
     private readonly List<NotesRequest?> _items;
-
     private readonly Context _context;
+    private readonly string _apiUrl;
 
     public ArchiveAdapter(List<NotesRequest?> items, Context context)
     {
         _items = items ?? new List<NotesRequest?>();
         _context = context;
+        _apiUrl = Application.Context.Resources!.GetString(Resource.String.api_base_url);
     }
 
     public override int ItemCount => _items.Count;
@@ -55,74 +57,118 @@ public class ArchiveAdapter : RecyclerView.Adapter
             vh.Preview.SetImageResource(Resource.Drawable.ic_no_photo);
         }
 
+        vh.ItemView.Tag = new Java.Lang.Integer(position);
+        vh.DeleteButton.Tag = new Java.Lang.Integer(position);
+
         vh.ItemView.Click -= OnItemClick;
         vh.ItemView.Click += OnItemClick;
 
         vh.DeleteButton.Click -= OnDeleteClick;
         vh.DeleteButton.Click += OnDeleteClick;
+    }
 
-        void OnItemClick(object? sender, EventArgs e)
+    private void OnItemClick(object? sender, EventArgs e)
+    {
+        if (sender is View view && view.Tag is Java.Lang.Integer integerTag)
         {
-            if (item?.Id == null) return;
+            int position = integerTag.IntValue();
+            if (position < 0 || position >= _items.Count) 
+                return;
+
+            var item = _items[position];
+            if (item?.Id == null) 
+                return;
 
             var intent = new Intent(_context, typeof(NoteActivity));
             intent.PutExtra("EventId", item.Id);
             intent.AddFlags(ActivityFlags.ClearTop);
             _context.StartActivity(intent);
         }
+    }
 
-        async void OnDeleteClick(object? sender, EventArgs e)
+    private void OnDeleteClick(object? sender, EventArgs e)
+    {
+        if (sender is View view && view.Tag is Java.Lang.Integer integerTag)
         {
-            var apiUrl = Application.Context.Resources!.GetString(Resource.String.api_base_url);
+            int position = integerTag.IntValue();
+            if (position < 0 || position >= _items.Count) 
+                return;
 
-            if (item?.Id == null) return;
+            var item = _items[position];
+            if (item?.Id == null) 
+                return;
 
-            var builder = new AlertDialog.Builder(_context);
-            builder.SetTitle("Удалить событие?")
-                   .SetMessage("Это действие нельзя отменить")
-                   .SetPositiveButton("Удалить", async (s, args) =>
-                   {
-                       if (_context is not BaseActivity baseActivity)
-                       {
-                           Toast.MakeText(_context, "Ошибка доступа", ToastLength.Short)?.Show();
-                           return;
-                       }
-
-                       var token = baseActivity.GetJwtToken();
-                       if (string.IsNullOrEmpty(token)) return;
-
-                       try
-                       {
-                           using var client = new HttpClient();
-                           client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                           var response = await client.DeleteAsync($"{apiUrl}/api/events/{item.Id}");
-
-                           if (response.IsSuccessStatusCode)
-                           {
-                               Toast.MakeText(_context, "Удалено", ToastLength.Short)?.Show();
-
-                               var pos = holder.AdapterPosition;
-                               if (pos != RecyclerView.NoPosition)
-                               {
-                                   _items.RemoveAt(pos);
-                                   NotifyItemRemoved(pos);
-                                   NotifyItemRangeChanged(pos, _items.Count);
-                               }
-                           }
-                           else
-                           {
-                               Toast.MakeText(_context, "Ошибка удаления", ToastLength.Short)?.Show();
-                           }
-                       }
-                       catch
-                       {
-                           Toast.MakeText(_context, "Нет сети", ToastLength.Short)?.Show();
-                       }
-                   })
-                   .SetNegativeButton("Отмена", (s, args) => { })
-                   .Show();
+            ShowDeleteConfirmationDialog(item, position);
         }
+    }
+
+    private void ShowDeleteConfirmationDialog(NotesRequest? item, int position)
+    {
+        var builder = new AlertDialog.Builder(_context);
+        var alert = builder
+            .SetTitle("Удалить событие?")
+            .SetMessage("Это действие нельзя отменить")
+            .SetPositiveButton("Удалить", (IDialogInterfaceOnClickListener)null!)
+            .SetNegativeButton("Отмена", (IDialogInterfaceOnClickListener)null!)
+            .Create();
+
+        alert.Show();
+
+        var positiveButton = alert.GetButton((int)DialogButtonType.Positive);
+        var negativeButton = alert.GetButton((int)DialogButtonType.Negative);
+
+        positiveButton!.Click += async (s, ev) =>
+        {
+            positiveButton.Enabled = false;
+
+            if (_context is not ArchiveActivity archiveActivity)
+            {
+                Toast.MakeText(_context, "Ошибка доступа", ToastLength.Short)?.Show();
+                alert.Dismiss();
+                return;
+            }
+
+            var token = archiveActivity.GetJwtToken();
+            if (string.IsNullOrEmpty(token))
+            {
+                Toast.MakeText(_context, "Не авторизован", ToastLength.Short)?.Show();
+                alert.Dismiss();
+                return;
+            }
+
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var response = await client.DeleteAsync($"{_apiUrl}/api/events/{item.Id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Toast.MakeText(_context, "Событие удалено", ToastLength.Short)?.Show();
+
+                    _items.RemoveAt(position);
+                    NotifyItemRemoved(position);
+                    NotifyItemRangeChanged(position, _items.Count);
+                }
+                else
+                {
+                    Toast.MakeText(_context, "Ошибка удаления", ToastLength.Short)?.Show();
+                }
+            }
+            catch
+            {
+                Toast.MakeText(_context, "Нет сети", ToastLength.Short)?.Show();
+            }
+            finally
+            {
+                alert.Dismiss();
+            }
+        };
+
+        negativeButton!.Click += (s, ev) =>
+        {
+            alert.Dismiss();
+        };
     }
 
     public void UpdateData(List<NotesRequest?> newItems)
@@ -140,7 +186,7 @@ public class ArchiveViewHolder : RecyclerView.ViewHolder
     public MaterialTextView Type { get; }
     public MaterialTextView Date { get; }
     public MaterialButton ExportButton { get; }
-    public MaterialButton DeleteButton { get; } 
+    public MaterialButton DeleteButton { get; }
 
     public ArchiveViewHolder(View itemView) : base(itemView)
     {
