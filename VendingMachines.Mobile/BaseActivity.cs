@@ -37,14 +37,6 @@ public abstract class BaseActivity : AppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        
-        //var token = GetJwtToken();
-        //if (string.IsNullOrEmpty(token))
-        //{
-        //    var intent = new Intent(this, typeof(LoginActivity));
-        //    intent.SetFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
-        //    StartActivity(intent);
-        //}
     }
 
     protected abstract int ToolbarTitleResourceId { get; }
