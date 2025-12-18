@@ -38,13 +38,13 @@ public abstract class BaseActivity : AppCompatActivity
     {
         base.OnCreate(savedInstanceState);
         
-        var token = GetJwtToken();
-        if (string.IsNullOrEmpty(token))
-        {
-            var intent = new Intent(this, typeof(LoginActivity));
-            intent.SetFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
-            StartActivity(intent);
-        }
+        //var token = GetJwtToken();
+        //if (string.IsNullOrEmpty(token))
+        //{
+        //    var intent = new Intent(this, typeof(LoginActivity));
+        //    intent.SetFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
+        //    StartActivity(intent);
+        //}
     }
 
     protected abstract int ToolbarTitleResourceId { get; }
@@ -84,23 +84,33 @@ public abstract class BaseActivity : AppCompatActivity
     private void ShowLogoutDialog()
     {
         if (_logoutDialog != null && _logoutDialog.IsShowing)
+        {
             return;
+        }
 
         var builder = new AlertDialog.Builder(this);
         builder.SetTitle("Выход");
         builder.SetMessage("Вы действительно хотите выйти из аккаунта?");
         builder.SetCancelable(true);
 
-        builder.SetPositiveButton("Да", (_, _) =>
+        builder.SetPositiveButton("Да", async (_, _) =>
         {
-            var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
-            prefs.Edit().Remove("JWT_TOKEN").Apply();
+            bool success = false;
+            if (this is DashboardActivity dashboard)
+            {
+                success = await dashboard.LogoutAsync();
+            }
 
-            var intent = new Intent(this, typeof(LoginActivity));
-            intent.SetFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
-            StartActivity(intent);
+            if (success || true)
+            {
+                var prefs = GetSharedPreferences("UserPrefs", FileCreationMode.Private);
+                prefs.Edit().Remove("JWT_TOKEN").Apply();
 
-            Finish();
+                var intent = new Intent(this, typeof(LoginActivity));
+                intent.SetFlags(ActivityFlags.ClearTask | ActivityFlags.NewTask);
+                StartActivity(intent);
+                Finish();
+            }
         });
 
         builder.SetNegativeButton("Нет", (_, _) => { });
@@ -308,6 +318,7 @@ public abstract class BaseActivity : AppCompatActivity
     protected override void OnDestroy()
     {
         _logoutDialog?.Dismiss();
+        _logoutDialog = null;
         base.OnDestroy();
     }
 
