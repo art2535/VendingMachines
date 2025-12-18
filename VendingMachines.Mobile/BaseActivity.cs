@@ -32,6 +32,8 @@ public abstract class BaseActivity : AppCompatActivity
     protected const int REQUEST_CAMERA_PHOTO = 100;
     protected const int REQUEST_CAMERA_VIDEO = 101;
 
+    protected string API_URL = Application.Context.Resources!.GetString(Resource.String.api_base_url);
+
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);

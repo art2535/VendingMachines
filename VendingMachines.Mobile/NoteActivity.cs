@@ -200,7 +200,7 @@ public class NoteActivity : BaseActivity
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await client.GetAsync($"http://192.168.1.77:5321/api/devices/{deviceId}");
+            var response = await client.GetAsync($"{API_URL}/api/devices/{deviceId}");
             if (!response.IsSuccessStatusCode) return;
 
             var json = await response.Content.ReadAsStringAsync();
@@ -328,7 +328,7 @@ public class NoteActivity : BaseActivity
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await client.PostAsJsonAsync("http://192.168.1.77:5321/api/events", newEvent);
+            var response = await client.PostAsJsonAsync($"{API_URL}/api/events", newEvent);
 
             if (response.IsSuccessStatusCode)
             {
@@ -375,8 +375,7 @@ public class NoteActivity : BaseActivity
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await client.PutAsJsonAsync(
-                $"http://192.168.1.77:5321/api/events/{_currentEvent.Id}", updated);
+            var response = await client.PutAsJsonAsync($"{API_URL}/api/events/{_currentEvent.Id}", updated);
 
             if (response.IsSuccessStatusCode)
             {
@@ -474,7 +473,7 @@ public class NoteActivity : BaseActivity
         {
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var resp = await client.GetAsync($"http://192.168.1.77:5321/api/events/{id}");
+            var resp = await client.GetAsync($"{API_URL}/api/events/{id}");
             if (!resp.IsSuccessStatusCode) return null;
 
             var json = await resp.Content.ReadAsStringAsync();

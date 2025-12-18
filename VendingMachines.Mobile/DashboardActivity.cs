@@ -48,7 +48,7 @@ public class DashboardActivity : BaseActivity
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await client.GetAsync("http://192.168.1.77:5321/api/devices");
+            var response = await client.GetAsync($"{API_URL}/api/devices");
             if (!response.IsSuccessStatusCode)
             {
                 Toast.MakeText(this, "Не удалось загрузить аппараты", ToastLength.Short)?.Show();
@@ -130,7 +130,7 @@ public class DashboardActivity : BaseActivity
 
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var response = await httpClient.PostAsync("http://192.168.1.77:5321/api/auth/logout", null);
+        var response = await httpClient.PostAsync($"{API_URL}/api/auth/logout", null);
 
         if (!response.IsSuccessStatusCode)
         {

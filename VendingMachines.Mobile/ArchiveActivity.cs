@@ -113,7 +113,7 @@ public class ArchiveActivity : BaseActivity
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var uri = new UriBuilder("http://192.168.1.77:5321/api/Events");
+            var uri = new UriBuilder($"{API_URL}/api/events");
             var query = HttpUtility.ParseQueryString(string.Empty);
 
             if (!string.IsNullOrWhiteSpace(search))

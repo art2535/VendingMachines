@@ -171,8 +171,9 @@ namespace VendingMachines.Mobile
                  * 5321 - порт HTTP
                  * 7270 - порт HTTPS
                  */
-
-                var response = await httpClient.PostAsync("http://192.168.1.77:5321/api/auth/login", content);
+                
+                var apiUrl = Application.Context.Resources!.GetString(Resource.String.api_base_url);
+                var response = await httpClient.PostAsync($"{apiUrl}/api/auth/login", content);
 
                 if (!response.IsSuccessStatusCode)
                 {

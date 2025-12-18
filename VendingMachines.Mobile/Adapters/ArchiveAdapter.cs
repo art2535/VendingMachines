@@ -73,6 +73,8 @@ public class ArchiveAdapter : RecyclerView.Adapter
 
         async void OnDeleteClick(object? sender, EventArgs e)
         {
+            var apiUrl = Application.Context.Resources!.GetString(Resource.String.api_base_url);
+
             if (item?.Id == null) return;
 
             var builder = new AlertDialog.Builder(_context);
@@ -94,7 +96,7 @@ public class ArchiveAdapter : RecyclerView.Adapter
                            using var client = new HttpClient();
                            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-                           var response = await client.DeleteAsync($"http://192.168.1.77:5321/api/events/{item.Id}");
+                           var response = await client.DeleteAsync($"{apiUrl}/api/events/{item.Id}");
 
                            if (response.IsSuccessStatusCode)
                            {
