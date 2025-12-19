@@ -10,6 +10,8 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер мониторинга и аналитики")]
     public class MonitoringController : ControllerBase
     {
@@ -22,11 +24,13 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("network-status")]
         [SwaggerOperation(
-            Summary = "Сетевой статус аппаратов", 
-            Description = "Фильтрация по статусу и типу подключения + статистика эффективности и выручки.")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetNetworkStatusAsync([FromQuery] string status = "",
-            [FromQuery] string connectionType = "")
+            Summary = "Сетевой статус аппаратов",
+            Description = "Фильтрация по статусу и типу подключения + статистика эффективности и выручки")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Сетевой статус получен", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetNetworkStatusAsync(
+            [FromQuery][SwaggerParameter(Description = "Фильтр по статусу аппарата")] string status = "",
+            [FromQuery][SwaggerParameter(Description = "Фильтр по типу подключения")] string connectionType = "")
         {
             var query = _context.Devices
                 .Include(d => d.DeviceStatus)
@@ -60,7 +64,7 @@ namespace VendingMachines.API.Controllers
             var efficiency = devices.Count != 0 ? (double)activeCount / devices.Count * 100 : 0;
 
             var money = await _context.Sales
-                .Where(s => s.DeviceId.HasValue && 
+                .Where(s => s.DeviceId.HasValue &&
                             devices
                                 .Select(d => d.Id)
                                 .Contains(s.DeviceId.Value))
@@ -79,10 +83,12 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("summary")]
         [SwaggerOperation(
-            Summary = "Сводка за сегодня/вчера", 
+            Summary = "Сводка за сегодня/вчера",
             Description = "Выручка, инкассация, обслуживание, деньги в ТА и т.д.")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetSummaryAsync([FromQuery] DateTime? date = null)
+        [SwaggerResponse(StatusCodes.Status200OK, "Сводка получена", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetSummaryAsync(
+            [FromQuery][SwaggerParameter(Description = "Дата для сводки (по умолчанию сегодня)")] DateTime? date = null)
         {
             var targetDate = date?.Date ?? DateTime.UtcNow.Date;
             var yesterday = targetDate.AddDays(-1);
@@ -103,7 +109,7 @@ namespace VendingMachines.API.Controllers
             var collectedYesterday = revenueYesterday;
 
             var services = await _context.Services
-                .Where(s => s.ServiceDate == DateOnly.FromDateTime(targetDate) 
+                .Where(s => s.ServiceDate == DateOnly.FromDateTime(targetDate)
                 || s.ServiceDate == DateOnly.FromDateTime(yesterday))
                 .ToListAsync();
 
@@ -116,7 +122,7 @@ namespace VendingMachines.API.Controllers
 
             var moneyInTA = inventory.Sum(i => i.Quantity * i.Product.Price);
             var changeInTA = inventory.Sum(i => i.Quantity * i.Product.Price * 0.1m);
-            
+
             return Ok(new
             {
                 MoneyInTA = moneyInTA,
@@ -132,11 +138,14 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("sales-trend")]
         [SwaggerOperation(
-            Summary = "Тренд продаж за период", 
-            Description = "Можно получить по сумме или по количеству продаж.")]
-        [ProducesResponseType(typeof(List<SaleTrend>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetSalesTrendAsync([FromQuery] DateTime? startDate, 
-            [FromQuery] DateTime? endDate, [FromQuery] bool byAmount = true)
+            Summary = "Тренд продаж за период",
+            Description = "Можно получить по сумме или по количеству продаж")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Тренд продаж получен", typeof(List<SaleTrend>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetSalesTrendAsync(
+            [FromQuery][SwaggerParameter(Description = "Дата начала периода")] DateTime? startDate,
+            [FromQuery][SwaggerParameter(Description = "Дата окончания периода")] DateTime? endDate,
+            [FromQuery][SwaggerParameter(Description = "Группировка по сумме (true) или количеству (false)")] bool byAmount = true)
         {
             var start = DateTime.SpecifyKind(startDate?.Date ?? DateTime.UtcNow.Date.AddDays(-9), DateTimeKind.Utc);
             var end = DateTime.SpecifyKind(endDate?.Date ?? DateTime.UtcNow.Date, DateTimeKind.Utc);
@@ -164,9 +173,13 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("notifications")]
         [SwaggerOperation(Summary = "Уведомления системы")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetNotificationsAsync([FromQuery] int? deviceId, [FromQuery] int? priorityId, 
-            [FromQuery] int limit = 10, [FromQuery] int offset = 0)
+        [SwaggerResponse(StatusCodes.Status200OK, "Список уведомлений", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetNotificationsAsync(
+            [FromQuery][SwaggerParameter(Description = "ID аппарата для фильтрации")] int? deviceId,
+            [FromQuery][SwaggerParameter(Description = "ID приоритета для фильтрации")] int? priorityId,
+            [FromQuery][SwaggerParameter(Description = "Количество уведомлений (по умолчанию 10)")] int limit = 10,
+            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0)
         {
             var query = _context.Notifications
                 .Include(not => not.Device)

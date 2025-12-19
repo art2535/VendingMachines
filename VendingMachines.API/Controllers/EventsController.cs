@@ -11,20 +11,30 @@ namespace VendingMachines.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/[controller]")]
+[Produces("application/json")]
+[Consumes("application/json")]
 [SwaggerTag("Контроллер для работы с событиями и заметками по аппаратам")]
 public class EventsController : ControllerBase
 {
     private VendingMachinesContext _context;
-    
+
     public EventsController(VendingMachinesContext context)
     {
         _context = context;
     }
-    
+
     [HttpGet]
-    [SwaggerOperation(Summary = "Получение архива событий с фильтрацией и сортировкой")]
-    public async Task<IActionResult> GetAllNotesAsync([FromQuery] string? search = null, [FromQuery] string? eventType = null,
-        [FromQuery] DateTime? date = null, [FromQuery] string? sortBy = "date", [FromQuery] string? sortOrder = "desc")
+    [SwaggerOperation(
+        Summary = "Получение архива событий с фильтрацией и сортировкой",
+        Description = "Поддерживает поиск по тексту, фильтр по типу события, дате и сортировку")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Список событий получен", typeof(List<NotesRequest>))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+    public async Task<IActionResult> GetAllNotesAsync(
+        [FromQuery][SwaggerParameter(Description = "Поиск по типу события, описанию, адресу, модели или компании")] string? search = null,
+        [FromQuery][SwaggerParameter(Description = "Фильтр по типу события (например: 'maintenance', 'error')")] string? eventType = null,
+        [FromQuery][SwaggerParameter(Description = "Фильтр по дате события (вся дата)")] DateTime? date = null,
+        [FromQuery][SwaggerParameter(Description = "Поле сортировки: 'date' или 'type' (по умолчанию 'date')")] string? sortBy = "date",
+        [FromQuery][SwaggerParameter(Description = "Направление сортировки: 'asc' или 'desc' (по умолчанию 'desc')")] string? sortOrder = "desc")
     {
         var query = _context.Events
             .Include(e => e.Device)
@@ -100,7 +110,11 @@ public class EventsController : ControllerBase
 
     [HttpGet("{id:int}")]
     [SwaggerOperation(Summary = "Получение события по ID")]
-    public async Task<IActionResult> GetNoteByIdAsync(int id)
+    [SwaggerResponse(StatusCodes.Status200OK, "Событие найдено", typeof(NotesRequest))]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Событие не найдено")]
+    public async Task<IActionResult> GetNoteByIdAsync(
+        [FromRoute][SwaggerParameter(Description = "ID события")] int id)
     {
         var eventEntity = await _context.Events
             .Include(e => e.Device)
@@ -142,12 +156,14 @@ public class EventsController : ControllerBase
 
         return Ok(result);
     }
-    
+
     [HttpPost]
     [SwaggerOperation(Summary = "Создание новой заметки/события")]
-    [ProducesResponseType(typeof(Event), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> AddNoteAsync([FromBody] NotesRequest request)
+    [SwaggerResponse(StatusCodes.Status201Created, "Событие создано", typeof(Event))]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Некорректные данные или аппарат не найден")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+    public async Task<IActionResult> AddNoteAsync(
+        [FromBody][SwaggerParameter(Description = "Данные нового события/заметки")] NotesRequest request)
     {
         var deviceId = request.Device?.Id ?? request.DeviceId;
         if (deviceId == null || deviceId <= 0)
@@ -156,11 +172,6 @@ public class EventsController : ControllerBase
         var device = await _context.Devices.FindAsync(deviceId);
         if (device == null)
             return BadRequest($"Аппарат с ID {deviceId} не найден");
-        
-        if (device == null)
-        {
-            return BadRequest($"Аппарат с ID {request.Device.Id} не найден");
-        }
 
         var newEvent = new Event
         {
@@ -173,16 +184,19 @@ public class EventsController : ControllerBase
 
         _context.Events.Add(newEvent);
         await _context.SaveChangesAsync();
-        
+
         return Created($"api/events/{newEvent.Id}", newEvent);
     }
 
     [HttpPut("{id:int}")]
     [SwaggerOperation(Summary = "Обновление события")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> UpdateNoteAsync(int id, [FromBody] NotesRequest request)
+    [SwaggerResponse(StatusCodes.Status204NoContent, "Событие обновлено")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "Некорректные данные или аппарат не найден")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Событие не найдено")]
+    public async Task<IActionResult> UpdateNoteAsync(
+        [FromRoute][SwaggerParameter(Description = "ID события для обновления")] int id,
+        [FromBody][SwaggerParameter(Description = "Обновленные данные события")] NotesRequest request)
     {
         var existingEvent = await _context.Events.FindAsync(id);
         if (existingEvent == null)
@@ -196,19 +210,11 @@ public class EventsController : ControllerBase
                 return BadRequest("Аппарат не найден");
             existingEvent.DeviceId = targetDeviceId;
         }
-        
+
         existingEvent.EventType = request.EventType ?? existingEvent.EventType;
         existingEvent.Description = request.Description ?? existingEvent.Description;
         existingEvent.DateTime = request.EventDate;
         existingEvent.MediaPath = request.PhotoUrl;
-
-        if (request.Device?.Id != null && request.Device.Id != existingEvent.DeviceId)
-        {
-            var device = await _context.Devices.FindAsync(request.Device.Id);
-            if (device == null) 
-                return BadRequest("Аппарат не найден");
-            existingEvent.DeviceId = device.Id;
-        }
 
         await _context.SaveChangesAsync();
         return NoContent();
@@ -216,9 +222,11 @@ public class EventsController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [SwaggerOperation(Summary = "Удаление события")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteNoteAsync(int id)
+    [SwaggerResponse(StatusCodes.Status204NoContent, "Событие удалено")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Событие не найдено")]
+    public async Task<IActionResult> DeleteNoteAsync(
+        [FromRoute][SwaggerParameter(Description = "ID события для удаления")] int id)
     {
         var deletedNote = await _context.Events
             .FirstOrDefaultAsync(note => note.Id == id);
@@ -226,7 +234,7 @@ public class EventsController : ControllerBase
         {
             return NotFound();
         }
-        
+
         _context.Events.Remove(deletedNote);
         await _context.SaveChangesAsync();
         return NoContent();

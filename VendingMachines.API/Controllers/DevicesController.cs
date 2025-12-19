@@ -8,9 +8,11 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace VendingMachines.API.Controllers
 {
-    [ApiController]
     [Authorize]
+    [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер для управления вендинговыми аппаратами")]
     public class DevicesController : ControllerBase
     {
@@ -22,10 +24,15 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet]
-        [SwaggerOperation(Summary = "Список аппаратов с фильтрацией и пагинацией")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetDevicesAsync([FromQuery] int limit = 10,
-            [FromQuery] int offset = 0, [FromQuery] string nameFilter = "")
+        [SwaggerOperation(
+            Summary = "Список аппаратов с фильтрацией и пагинацией",
+            Description = "Возвращает аппараты с информацией о моделях, компаниях, модемах и локациях. Поддерживает поиск по названию")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список аппаратов с пагинацией", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetDevicesAsync(
+            [FromQuery][SwaggerParameter(Description = "Количество аппаратов на странице (по умолчанию 10)")] int limit = 10,
+            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0,
+            [FromQuery][SwaggerParameter(Description = "Фильтр поиска по названию модели, типа или компании")] string nameFilter = "")
         {
             var query = from device in _context.Devices
                         join model in _context.DeviceModels on device.DeviceModelId equals model.Id
@@ -67,9 +74,11 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("{id}")]
         [SwaggerOperation(Summary = "Получение аппарата по ID")]
-        [ProducesResponseType(typeof(DeviceListItem), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetDeviceByIdAsync([FromRoute] int id)
+        [SwaggerResponse(StatusCodes.Status200OK, "Аппарат найден", typeof(DeviceListItem))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Аппарат не найден")]
+        public async Task<IActionResult> GetDeviceByIdAsync(
+            [FromRoute][SwaggerParameter(Description = "ID аппарата")] int id)
         {
             var query = from device in _context.Devices
                         join model in _context.DeviceModels on device.DeviceModelId equals model.Id
@@ -100,9 +109,12 @@ namespace VendingMachines.API.Controllers
 
         [HttpPost]
         [SwaggerOperation(Summary = "Создание нового аппарата")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CreateNewDeviceAsync([FromBody] Device device)
+        [SwaggerResponse(StatusCodes.Status201Created, "Аппарат успешно создан", typeof(Device))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Некорректные данные")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Ошибка сервера")]
+        public async Task<IActionResult> CreateNewDeviceAsync(
+            [FromBody][SwaggerParameter(Description = "Данные нового аппарата")] Device device)
         {
             if (device == null)
             {
@@ -134,9 +146,12 @@ namespace VendingMachines.API.Controllers
 
         [HttpPut("{id}")]
         [SwaggerOperation(Summary = "Полное обновление аппарата")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateDeviceAsync([FromRoute] int id, [FromBody] DeviceUpdateDto dto)
+        [SwaggerResponse(StatusCodes.Status200OK, "Аппарат успешно обновлен", typeof(Device))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Аппарат не найден")]
+        public async Task<IActionResult> UpdateDeviceAsync(
+            [FromRoute][SwaggerParameter(Description = "ID аппарата для обновления")] int id,
+            [FromBody][SwaggerParameter(Description = "Обновленные данные аппарата")] DeviceUpdateDto dto)
         {
             var existingDevice = await _context.Devices
                 .Include(d => d.Location)
@@ -175,7 +190,7 @@ namespace VendingMachines.API.Controllers
                         .FirstOrDefaultAsync(l => l.Id == existingDevice.LocationId);
                     if (existingLocation != null)
                     {
-                        existingLocation.InstallationAddress = dto.Location.InstallationAddress 
+                        existingLocation.InstallationAddress = dto.Location.InstallationAddress
                             ?? existingLocation.InstallationAddress;
                         existingLocation.PlaceDescription = dto.Location.PlaceDescription ?? existingLocation.PlaceDescription;
                         _context.Entry(existingLocation).State = EntityState.Modified;
@@ -199,8 +214,11 @@ namespace VendingMachines.API.Controllers
 
         [HttpDelete("{id}")]
         [SwaggerOperation(Summary = "Удаление аппарата")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<IActionResult> DeleteDeviceAsync([FromRoute] int id)
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Аппарат успешно удален")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Аппарат не найден")]
+        public async Task<IActionResult> DeleteDeviceAsync(
+            [FromRoute][SwaggerParameter(Description = "ID аппарата для удаления")] int id)
         {
             var device = await _context.Devices.FindAsync(id);
             if (device == null)
@@ -216,9 +234,11 @@ namespace VendingMachines.API.Controllers
 
         [HttpPatch("{id}/detach-modem")]
         [SwaggerOperation(Summary = "Отвязка модема от аппарата")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DetachModemAsync([FromRoute] int id)
+        [SwaggerResponse(StatusCodes.Status200OK, "Модем отвязан", typeof(Device))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Аппарат не найден")]
+        public async Task<IActionResult> DetachModemAsync(
+            [FromRoute][SwaggerParameter(Description = "ID аппарата")] int id)
         {
             var device = await _context.Devices.FindAsync(id);
             if (device == null)
@@ -236,7 +256,8 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("companies")]
         [SwaggerOperation(Summary = "Список компаний (для выпадающих списков)")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список компаний", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetCompaniesAsync()
         {
             var companies = await _context.Companies
@@ -247,7 +268,8 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("devicemodels")]
         [SwaggerOperation(Summary = "Список моделей аппаратов")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список моделей", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetDeviceModelsAsync()
         {
             var models = await _context.DeviceModels
@@ -258,7 +280,8 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("modems")]
         [SwaggerOperation(Summary = "Список модемов")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список модемов", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetModemsAsync()
         {
             var modems = await _context.Modems
@@ -269,7 +292,8 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("paymentmethods")]
         [SwaggerOperation(Summary = "Способы оплаты")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список способов оплаты", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetPaymentMethodsAsync()
         {
             var paymentMethods = await _context.PaymentMethods
@@ -280,7 +304,8 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet("locations")]
         [SwaggerOperation(Summary = "Список локаций")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список локаций", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetLocationsAsync()
         {
             var locations = await _context.Locations

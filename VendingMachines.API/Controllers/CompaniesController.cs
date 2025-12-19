@@ -10,6 +10,8 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер для управления компаниями")]
     public class CompaniesController : ControllerBase
     {
@@ -22,11 +24,14 @@ namespace VendingMachines.API.Controllers
 
         [HttpGet]
         [SwaggerOperation(
-            Summary = "Получение списка компаний", 
-            Description = "Поддерживает фильтр по части названия.")]
-        [ProducesResponseType(typeof(List<Company>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetCompaniesAsync([FromQuery] int limit = 10,
-            [FromQuery] int offset = 0, [FromQuery] string nameFilter = "")
+            Summary = "Получение списка компаний",
+            Description = "Возвращает компании с пагинацией и фильтром по части названия")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список компаний получен", typeof(List<Company>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetCompaniesAsync(
+            [FromQuery][SwaggerParameter(Description = "Количество компаний на странице (по умолчанию 10)")] int limit = 10,
+            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0,
+            [FromQuery][SwaggerParameter(Description = "Фильтр по части названия компании")] string nameFilter = "")
         {
             var query = _context.Companies.AsQueryable();
 
@@ -45,10 +50,12 @@ namespace VendingMachines.API.Controllers
 
         [HttpPost]
         [SwaggerOperation(Summary = "Создание новой компании")]
-        [ProducesResponseType(typeof(Company), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateCompanyAsync([FromBody] Company company)
+        [SwaggerResponse(StatusCodes.Status201Created, "Компания успешно создана", typeof(Company))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Некорректные данные компании")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Ошибка сервера при создании")]
+        public async Task<IActionResult> CreateCompanyAsync(
+            [FromBody][SwaggerParameter(Description = "Данные новой компании")] Company company)
         {
             if (company == null)
             {
@@ -74,10 +81,13 @@ namespace VendingMachines.API.Controllers
 
         [HttpPut("{id}")]
         [SwaggerOperation(Summary = "Обновление компании")]
-        [ProducesResponseType(typeof(Company), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateCompanyAsync([FromRoute] int id, [FromBody] Company company)
+        [SwaggerResponse(StatusCodes.Status200OK, "Компания успешно обновлена", typeof(Company))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "ID в пути не совпадает с ID в теле")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Компания не найдена")]
+        public async Task<IActionResult> UpdateCompanyAsync(
+            [FromRoute][SwaggerParameter(Description = "ID компании для обновления")] int id,
+            [FromBody][SwaggerParameter(Description = "Обновленные данные компании")] Company company)
         {
             if (company.Id != id)
             {
@@ -100,9 +110,11 @@ namespace VendingMachines.API.Controllers
 
         [HttpDelete("{id}")]
         [SwaggerOperation(Summary = "Удаление компании")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DeleteCompanyAsync([FromRoute] int id)
+        [SwaggerResponse(StatusCodes.Status204NoContent, "Компания успешно удалена")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Компания не найдена")]
+        public async Task<IActionResult> DeleteCompanyAsync(
+            [FromRoute][SwaggerParameter(Description = "ID компании для удаления")] int id)
         {
             var deletedCompany = await _context.Companies.FindAsync(id);
 

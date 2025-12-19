@@ -10,6 +10,8 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер бронирования аппаратов")]
     public class BookingsController : ControllerBase
     {
@@ -21,9 +23,11 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpGet]
-        [SwaggerOperation(Summary = "Список бронирований аппарата")]
-        [ProducesResponseType(typeof(Booking), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [SwaggerOperation(
+            Summary = "Список бронирований аппаратов",
+            Description = "Возвращает все бронирования с информацией об аппаратах и компаниях")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список бронирований получен", typeof(IEnumerable<Booking>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<ActionResult<IEnumerable<Booking>>> GetBookingsAsync()
         {
             return await _context.Bookings
@@ -35,10 +39,12 @@ namespace VendingMachines.API.Controllers
         [HttpPost]
         [SwaggerOperation(
             Summary = "Создание бронирования аппарата",
-            Description = "Нельзя забронировать уже забронированный аппарат со статусом 'confirmed'.")]
-        [ProducesResponseType(typeof(Booking), StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CreateBookingAsync([FromBody] Booking booking)
+            Description = "Создает новое бронирование. Нельзя забронировать уже забронированный аппарат со статусом 'confirmed'")]
+        [SwaggerResponse(StatusCodes.Status201Created, "Бронирование успешно создано", typeof(Booking))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Аппарат уже забронирован или ошибка в данных")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> CreateBookingAsync(
+            [FromBody][SwaggerParameter(Description = "Данные для создания бронирования аппарата")] Booking booking)
         {
             var existingBooking = await _context.Bookings
                 .FirstOrDefaultAsync(b => b.DeviceId == booking.DeviceId && b.Status == "confirmed");

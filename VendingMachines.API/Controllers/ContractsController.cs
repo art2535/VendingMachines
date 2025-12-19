@@ -10,6 +10,8 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер для работы с договорами")]
     public class ContractsController : ControllerBase
     {
@@ -23,11 +25,13 @@ namespace VendingMachines.API.Controllers
         [HttpGet]
         [SwaggerOperation(
             Summary = "Получение списка договоров",
-            Description = "Поддерживает фильтрацию по компании и пагинацию.")]
-        [ProducesResponseType(typeof(List<Contract>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetContractsAsync([FromQuery] int? companyId,
-            [FromQuery] int limit = 10, [FromQuery] int offset = 0)
+            Description = "Возвращает договоры с информацией о компаниях. Поддерживает фильтрацию по компании и пагинацию")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список договоров получен", typeof(List<Contract>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetContractsAsync(
+            [FromQuery][SwaggerParameter(Description = "ID компании для фильтрации (опционально)")] int? companyId = null,
+            [FromQuery][SwaggerParameter(Description = "Количество договоров на странице (по умолчанию 10)")] int limit = 10,
+            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0)
         {
             var query = _context.Contracts
                 .Include(contract => contract.Company)
@@ -35,7 +39,7 @@ namespace VendingMachines.API.Controllers
 
             if (companyId.HasValue)
             {
-                query = query.Where(c => c.Id == companyId);
+                query = query.Where(c => c.CompanyId == companyId);
             }
 
             var contracts = await query.OrderBy(c => c.Id)

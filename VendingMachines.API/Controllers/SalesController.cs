@@ -10,6 +10,8 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер для работы с продажами")]
     public class SalesController : ControllerBase
     {
@@ -23,11 +25,13 @@ namespace VendingMachines.API.Controllers
         [HttpGet]
         [SwaggerOperation(
             Summary = "Получение списка продаж",
-            Description = "Поддерживает фильтрацию по устройству и пагинацию.")]
-        [ProducesResponseType(typeof(List<Sale>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> GetSalesAsync([FromQuery] int? deviceId,
-            [FromQuery] int limit = 10, [FromQuery] int offset = 0)
+            Description = "Возвращает продажи с информацией об аппаратах. Поддерживает фильтрацию по устройству и пагинацию")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список продаж получен", typeof(List<Sale>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetSalesAsync(
+            [FromQuery][SwaggerParameter(Description = "ID аппарата для фильтрации (опционально)")] int? deviceId = null,
+            [FromQuery][SwaggerParameter(Description = "Количество продаж на странице (по умолчанию 10)")] int limit = 10,
+            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0)
         {
             var query = _context.Sales
                 .Include(sale => sale.Device)
@@ -35,7 +39,7 @@ namespace VendingMachines.API.Controllers
 
             if (deviceId.HasValue)
             {
-                query = query.Where(device => device.Id == deviceId);
+                query = query.Where(s => s.DeviceId == deviceId);
             }
 
             var sales = await query

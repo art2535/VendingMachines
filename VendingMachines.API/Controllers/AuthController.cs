@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using VendingMachines.API.DTOs.Account; 
+using VendingMachines.API.DTOs.Account;
 using VendingMachines.API.DTOs.Auth;
 using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
@@ -13,6 +13,8 @@ namespace VendingMachines.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер авторизации и аутентификации")]
     public class AuthController : ControllerBase
     {
@@ -27,9 +29,12 @@ namespace VendingMachines.API.Controllers
 
         [Authorize]
         [HttpGet("info")]
-        [SwaggerOperation(Summary = "Информация о текущем пользователе")]
-        [ProducesResponseType(typeof(UserRequest), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+        [SwaggerOperation(
+            Summary = "Информация о текущем пользователе",
+            Description = "Возвращает данные текущего авторизованного пользователя, роль и JWT токен из cookies")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Информация о пользователе получена", typeof(UserRequest))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Пользователь не найден")]
         public async Task<IActionResult> GetUserAsync()
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -57,10 +62,13 @@ namespace VendingMachines.API.Controllers
         }
 
         [HttpPost("register")]
-        [SwaggerOperation(Summary = "Регистрация нового пользователя")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> RegisterAsync([FromBody] RegisterRequest request)
+        [SwaggerOperation(
+            Summary = "Регистрация нового пользователя",
+            Description = "Создает нового пользователя с указанием ФИО, email, телефона, роли, компании и языка")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Пользователь успешно зарегистрирован", typeof(User))]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Ошибка валидации данных")]
+        public async Task<IActionResult> RegisterAsync(
+            [FromBody][SwaggerParameter(Description = "Данные для регистрации нового пользователя")] RegisterRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -92,11 +100,12 @@ namespace VendingMachines.API.Controllers
 
         [HttpPost("login")]
         [SwaggerOperation(
-            Summary = "Вход в систему", 
-            Description = "Возвращает JWT-токен и данные пользователя. Токен также сохраняется в cookie.")]
-        [ProducesResponseType(typeof(UserRequest), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> LoginAsync([FromBody] LoginRequest loginRequest)
+            Summary = "Вход в систему",
+            Description = "Аутентифицирует пользователя по email и паролю. Возвращает JWT-токен и данные пользователя. Токен сохраняется в cookie.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Авторизация успешна", typeof(UserRequest))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Неверные учетные данные")]
+        public async Task<IActionResult> LoginAsync(
+            [FromBody][SwaggerParameter(Description = "Учетные данные для входа (email и пароль)")] LoginRequest loginRequest)
         {
             var user = await _context.Users
                 .Include(user => user.Role)
@@ -127,7 +136,11 @@ namespace VendingMachines.API.Controllers
 
         [Authorize]
         [HttpPost("refresh-token")]
-        [SwaggerOperation(Summary = "Обновление JWT-токена")]
+        [SwaggerOperation(
+            Summary = "Обновление JWT-токена",
+            Description = "Генерирует новый JWT токен для текущего авторизованного пользователя")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Новый токен сгенерирован", typeof(string))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public IActionResult RefreshToken()
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -141,8 +154,10 @@ namespace VendingMachines.API.Controllers
         [Authorize]
         [HttpPost("logout")]
         [SwaggerOperation(
-            Summary = "Выход из системы", 
-            Description = "Удаляет JWT из cookies")]
+            Summary = "Выход из системы",
+            Description = "Удаляет JWT токен из cookies клиента и завершает сессию")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Выход выполнен успешно")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public IActionResult LogoutAsync()
         {
             Response.Cookies.Delete("jwt_token");

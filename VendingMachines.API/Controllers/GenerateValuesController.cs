@@ -7,6 +7,8 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Тестовый контроллер для генерации случайных значений мониторинга")]
     public class GenerateValuesController : ControllerBase
     {
@@ -21,7 +23,8 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Генерация случайной суммы денег в аппарате",
             Description = "Возвращает случайное значение от 0 до 9999 RUB. Используется для тестирования UI.")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Случайная сумма сгенерирована", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public IActionResult GetMoney()
         {
             var money = _random.Next(0, 10000);
@@ -36,7 +39,8 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Случайный статус соединения",
             Description = "Возвращает один из статусов: Online, Offline, Unstable.")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Статус соединения сгенерирован", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public IActionResult GetConnectionStatus()
         {
             var statuses = new[] { "Online", "Offline", "Unstable" };
@@ -53,7 +57,8 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Случайные остатки ингредиентов и расходников",
             Description = "Возвращает случайные значения остатков кофе, сахара, молока, стаканов и т.д.")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Остатки ингредиентов сгенерированы", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public IActionResult GetStockAsync()
         {
             var stock = new
@@ -73,7 +78,8 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Случайные данные по наличным и безналичным платежам",
             Description = "Возвращает наличные в купюроприёмнике, сумму безналичных платежей и общую выручку.")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Данные по платежам сгенерированы", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public IActionResult GetCashStatus()
         {
             var cash = new
@@ -97,7 +103,8 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Случайные статусы аппарата",
             Description = "Возвращает 1–2 случайных статуса из списка (работает, на обслуживании, ошибки и т.д.).")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [SwaggerResponse(StatusCodes.Status200OK, "Статусы аппарата сгенерированы", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public IActionResult GetStatuses()
         {
             var statuses = new string[]

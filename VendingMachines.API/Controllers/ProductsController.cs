@@ -10,6 +10,8 @@ namespace VendingMachines.API.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Produces("application/json")]
+    [Consumes("application/json")]
     [SwaggerTag("Контроллер для работы с товарами/напитками")]
     public class ProductsController : ControllerBase
     {
@@ -23,9 +25,12 @@ namespace VendingMachines.API.Controllers
         [HttpGet]
         [SwaggerOperation(
             Summary = "Получение списка товаров",
-            Description = "Пагинируемый список всех товаров в системе.")]
-        [ProducesResponseType(typeof(List<Product>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetProductsAsync([FromQuery] int limit = 10, [FromQuery] int offset = 0)
+            Description = "Пагинируемый список всех товаров в системе с сортировкой по ID")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список товаров получен", typeof(List<Product>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetProductsAsync(
+            [FromQuery][SwaggerParameter(Description = "Количество товаров на странице (по умолчанию 10)")] int limit = 10,
+            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0)
         {
             var products = await _context.Products
                 .OrderBy(product => product.Id)
