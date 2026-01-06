@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Globalization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VendingMachines.API.DTOs.Monitoring;
@@ -214,6 +215,93 @@ namespace VendingMachines.API.Controllers
                 .ToListAsync();
 
             return Ok(notifications);
+        }
+        
+        [HttpGet("maintenance-events")]
+        [SwaggerOperation(Summary = "События для календаря обслуживания")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список событий календаря")]
+        public async Task<IActionResult> GetMaintenanceEvents(
+            [FromQuery] DateTime? month = null,
+            [FromQuery] int? deviceId = null)
+        {
+            var targetMonth = month?.Date ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var startOfMonth = new DateTime(targetMonth.Year, targetMonth.Month, 1);
+            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+
+            var query = _context.Devices
+                .Include(d => d.DeviceModel)
+                .Include(d => d.Location)
+                .Include(d => d.Company)
+                .AsQueryable();
+
+            if (deviceId.HasValue)
+                query = query.Where(d => d.Id == deviceId.Value);
+
+            var devices = await query.ToListAsync();
+
+            var events = new List<MaintenanceEventDto>();
+            var today = DateTime.Today;
+
+            const int defaultServiceIntervalMonths = 6;
+
+            foreach (var device in devices)
+            {
+                DateTime? nextServiceDate = null;
+                string eventType = "Плановое обслуживание";
+
+                if (device.LastServiceDate.HasValue)
+                {
+                    nextServiceDate = device.LastServiceDate.Value
+                        .ToDateTime(TimeOnly.MinValue)
+                        .AddMonths(defaultServiceIntervalMonths);
+                }
+                else if (device.InstallationDate != default)
+                {
+                    nextServiceDate = device.InstallationDate
+                        .ToDateTime(TimeOnly.MinValue)
+                        .AddMonths(defaultServiceIntervalMonths);
+                }
+
+                if (nextServiceDate.HasValue && 
+                    nextServiceDate.Value.Date >= startOfMonth && 
+                    nextServiceDate.Value.Date <= endOfMonth)
+                {
+                    var daysUntilEvent = (nextServiceDate.Value.Date - today).Days;
+
+                    string backgroundColor = "#4CAF50";
+                    string textColor = "white";
+
+                    if (daysUntilEvent < 0)
+                    {
+                        backgroundColor = "#F44336";
+                    }
+                    else if (daysUntilEvent < 5)
+                    {
+                        backgroundColor = "#FF9800";
+                    }
+
+                    events.Add(new MaintenanceEventDto
+                    {
+                        Date = nextServiceDate.Value.Date,
+                        DeviceId = device.Id,
+                        SerialNumber = $"ТА-{device.Id}",
+                        Model = device.DeviceModel?.Name ?? "Неизвестная модель",
+                        Address = device.Location != null 
+                            ? $"{device.Location.InstallationAddress}" 
+                            : "Адрес не указан",
+                        Franchisee = device.Company?.Name ?? "Не указан",
+                        Type = eventType,
+                        BackgroundColor = backgroundColor,
+                        TextColor = textColor
+                    });
+                }
+            }
+
+            return Ok(new
+            {
+                Month = targetMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU")),
+                Events = events.OrderBy(e => e.Date).ToList()
+            });
         }
     }
 }

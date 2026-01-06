@@ -77,7 +77,6 @@
     </style>
 </head>
 <body class="vh-100 d-flex flex-column">
-    <!-- Header -->
     <header class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow">
         <div class="container">
             <a class="navbar-brand" asp-area="" asp-page="/Index">ООО "Торговые автоматы"</a>
@@ -125,15 +124,14 @@
     @if (!string.IsNullOrEmpty(Context.Session.GetString("jwt_token")))
     {
         <div class="content-wrapper">
-            <!-- Левое меню -->
             <div class="sidebar p-0">
                 <div class="p-3 mb-2 border-bottom">
                     <h5>Навигация</h5>
                 </div>
                 <a class="d-block px-3 py-2" asp-page="/Account/Main">Главная</a>
-                <a class="d-block px-3 py-2" asp-page="/Account/Monitor">Монитор ТА</a>
-                <a class="d-block px-3 py-2" asp-page="/Account/Reports">Детальные отчеты</a>
-                <a class="d-block px-3 py-2" asp-page="/Account/Inventory">Учет ТМЦ</a>
+                <a class="d-block px-3 py-2" asp-page="/Account/MaintenanceCalendar">Календарь обслуживания</a>
+                <a class="d-block px-3 py-2" asp-page="/Account/WorkSchedule">График работ</a>
+                <a class="d-block px-3 py-2" asp-page="/Account/VendingMachinesTA">ТА</a>
 
                 @if (Context.Session.GetString("user_role") == "Администратор")
                 {
@@ -152,9 +150,7 @@
                 }
             </div>
 
-            <!-- Основная область -->
             <div class="flex-fill d-flex flex-column">
-                <!-- Main с прокруткой -->
                 <main class="flex-fill overflow-auto p-3">
                     @RenderBody()
                 </main>
@@ -170,7 +166,6 @@
         </div>
     }
 
-    <!-- Footer -->
     <footer>
         <div class="container p-2">
             &copy; 2025 - VendingMachines.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
