@@ -8,7 +8,7 @@ namespace VendingMachines.API.Extensions
         public static void AddPostgreSQL(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<VendingMachinesContext>(options =>
-                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(configuration.GetConnectionString("PostgresConnection")));
         }
     }
 }
