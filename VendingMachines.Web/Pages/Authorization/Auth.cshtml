@@ -4,28 +4,173 @@
 	ViewData["Title"] = "Вход в систему";
 }
 
-<div>
-	<form asp-action="post">
-		<label>Войти в систему</label>
-		<div>
-			<label>Email:</label>
-			<input type="text" asp-for="Email" />
-			<span asp-validation-for="Email" style="color:red; display: block;"></span>
-		</div>
-		<div>
-			<label>Пароль:</label>
-			<input type="password" asp-for="Password" />
-			<span asp-validation-for="Password" style="color:red; display: block;"></span>
-		</div>
-		@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-		{
-			<div style="color: red; text-align: center; margin-bottom: 15px;">
-				@Model.ErrorMessage
+<div class="login-container">
+	<div class="login-card">
+		<h2 class="login-title">Вход в систему</h2>
+
+		<form asp-action="post" class="login-form">
+			@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+			{
+				<div class="error-message">
+					@Model.ErrorMessage
+				</div>
+			}
+
+			<div class="form-group">
+				<label asp-for="Email">Email</label>
+				<input asp-for="Email" class="form-input" placeholder="example@mail.com" />
+				<span asp-validation-for="Email" class="validation-error"></span>
 			</div>
-		}
-		<div>
-			<button type="submit" asp-page-handler="Login">Войти</button>
-			<button type="submit" asp-page-handler="Register">Зарегистрироваться</button>
-		</div>
-	</form>
+
+			<div class="form-group">
+				<label asp-for="Password">Пароль</label>
+				<input asp-for="Password" type="password" class="form-input" placeholder="••••••••" />
+				<span asp-validation-for="Password" class="validation-error"></span>
+			</div>
+
+			<div class="buttons-group">
+				<button type="submit" asp-page-handler="Login" class="btn btn-primary">
+					Войти
+				</button>
+				<button type="submit" asp-page-handler="Register" class="btn btn-secondary">
+					Зарегистрироваться
+				</button>
+			</div>
+		</form>
+	</div>
 </div>
+
+<style>
+	.login-container {
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #ffffff;
+		padding: 20px;
+		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	}
+
+	.login-card {
+		background: white;
+		border-radius: 16px;
+		box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+		padding: 40px;
+		width: 100%;
+		max-width: 420px;
+		backdrop-filter: blur(10px);
+	}
+
+	.login-title {
+		text-align: center;
+		margin-bottom: 30px;
+		color: #333;
+		font-size: 28px;
+		font-weight: 600;
+	}
+
+	.login-form {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.form-group label {
+		margin-bottom: 8px;
+		font-weight: 500;
+		color: #444;
+		font-size: 15px;
+	}
+
+	.form-input {
+		padding: 14px 16px;
+		border: 2px solid #e1e5e9;
+		border-radius: 10px;
+		font-size: 16px;
+		transition: all 0.3s ease;
+		background-color: #f8f9fa;
+	}
+
+	.form-input:focus {
+		outline: none;
+		border-color: #667eea;
+		background-color: white;
+		box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+	}
+
+	.validation-error {
+		color: #e74c3c;
+		font-size: 14px;
+		min-height: 20px;
+		margin-top: 6px;
+		display: block;
+	}
+
+	.error-message {
+		background-color: #fdf2f2;
+		color: #e74c3c;
+		padding: 14px;
+		border-radius: 10px;
+		text-align: center;
+		font-size: 15px;
+		border: 1px solid #fbcacf;
+		margin-bottom: 10px;
+	}
+
+	.buttons-group {
+		display: flex;
+		gap: 12px;
+		margin-top: 10px;
+	}
+
+	.btn {
+		flex: 1;
+		padding: 14px;
+		border: none;
+		border-radius: 10px;
+		font-size: 16px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+
+	.btn-primary {
+		background: linear-gradient(135deg, #667eea, #764ba2);
+		color: white;
+	}
+
+	.btn-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+	}
+
+	.btn-secondary {
+		background-color: #f1f3f5;
+		color: #444;
+		border: 2px solid #e1e5e9;
+	}
+
+	.btn-secondary:hover {
+		background-color: #e9ecef;
+		transform: translateY(-2px);
+	}
+
+	@@media (max-width: 480px) {
+		.login-card {
+			padding: 30px 20px;
+		}
+
+		.buttons-group {
+			flex-direction: column;
+		}
+
+		.login-title {
+			font-size: 24px;
+		}
+	}
+</style>
