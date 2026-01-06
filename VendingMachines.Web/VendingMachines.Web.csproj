@@ -52,4 +52,9 @@
     </Resource>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="DayPilot" Version="5.0.303" />
+    <PackageReference Include="QuickChart" Version="2.3.0" />
+  </ItemGroup>
+
 </Project>
