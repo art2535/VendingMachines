@@ -25,7 +25,7 @@
                 <select name="month" class="form-select">
                     @for (int m = 1; m <= 12; m++)
                     {
-                        <option value="@m" selected="@(m == Model.CurrentMonth.Month)">@monthNames[m-1]</option>
+                        <option value="@m" selected="@(m == Model.CurrentMonth.Month)">@monthNames[m - 1]</option>
                     }
                 </select>
             </div>
@@ -99,7 +99,8 @@
                     {
                         var currentDate = firstDayOfMonth.AddDays(week * 7 + weekday - startOffset).Date;
                         var isCurrentMonth = currentDate.Month == Model.CurrentMonth.Month;
-                        var eventsToday = Model.Events.Where(e => e.Date.Date == currentDate).ToList();  <!-- ИСПРАВЛЕНО -->
+                        var eventsToday = Model.Events
+                            .Where(e => e.Date.Date == currentDate).ToList();
 
                         <td class="@(isCurrentMonth ? "current-month" : "other-month") @(currentDate == today ? "today" : "")"
                             style="height: 130px; vertical-align: top; padding: 8px;">

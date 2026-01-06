@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Globalization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using VendingMachines.API.DTOs.Monitoring;
-using VendingMachines.API.DTOs.Devices;
+using VendingMachines.Web.DTOs;
 
 namespace VendingMachines.Web.Pages.Account;
 
@@ -54,7 +55,7 @@ public class MaintenanceCalendar : PageModel
                         PropertyNameCaseInsensitive = true
                     });
 
-                CurrentMonthName = apiResponse?.Month ?? CurrentMonth.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"));
+                CurrentMonthName = apiResponse?.Month ?? CurrentMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU"));
                 Events = (apiResponse?.Events ?? new List<MaintenanceEventDto>())
                     .Select(e => new MaintenanceEventDto
                     {
@@ -72,7 +73,7 @@ public class MaintenanceCalendar : PageModel
             }
             else
             {
-                CurrentMonthName = CurrentMonth.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"));
+                CurrentMonthName = CurrentMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU"));
                 Events = new();
             }
 
@@ -90,7 +91,6 @@ public class MaintenanceCalendar : PageModel
 
             if (devicesResponse.IsSuccessStatusCode)
             {
-                // Создаём DTO для обёртки
                 var wrappedResponse = await devicesResponse.Content
                     .ReadFromJsonAsync<DevicesWrappedResponse>(new JsonSerializerOptions
                     {
@@ -119,24 +119,10 @@ public class MaintenanceCalendar : PageModel
         catch (Exception ex)
         {
             ModelState.AddModelError("", $"Ошибка связи с API: {ex.Message}");
-            CurrentMonthName = CurrentMonth.ToString("MMMM yyyy", new System.Globalization.CultureInfo("ru-RU"));
+            CurrentMonthName = CurrentMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU"));
             Events = new();
         }
 
         return Page();
     }
-}
-
-// DTO для обёртки ответа /api/devices
-public class DevicesWrappedResponse
-{
-    public int TotalCount { get; set; }
-    public List<DeviceListItem> Items { get; set; } = new();
-}
-
-// DTO для календаря (оставляем как есть)
-public class ApiResponse
-{
-    public string Month { get; set; } = "";
-    public List<MaintenanceEventDto> Events { get; set; } = new();
 }
