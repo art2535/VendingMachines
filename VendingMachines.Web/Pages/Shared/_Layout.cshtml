@@ -1,16 +1,17 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - VendingMachines.Web</title>
-    <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/VendingMachines.Web.styles.css" asp-append-version="true" />
     <style>
         html, body {
             height: 100%;
+            margin: 0;
+            overflow: hidden;
         }
 
         body {
@@ -18,128 +19,137 @@
             flex-direction: column;
         }
 
-        /* Header фиксирован */
         header {
-            flex: 0 0 auto;
+            flex-shrink: 0;
+            z-index: 1030;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        /* Контейнер для меню + контента с отступом под футер */
         .content-wrapper {
-            display: flex;
             flex: 1 1 auto;
+            display: flex;
             overflow: hidden;
-            padding-bottom: 0px; /* отступ под футер */
         }
 
-        .dropdown-menu .dropdown-item {
-            color: black;
-        }
-
-            .dropdown-menu .dropdown-item:hover {
-                background-color: white; /* подсветка при наведении */
-            }
-        /* Левое меню */
         .sidebar {
-            width: 200px;
-            min-width: 200px;
+            width: 220px;
             background-color: #343a40;
             color: white;
-            flex: 0 0 auto;
+            overflow-y: auto;
+            padding-bottom: 20px;
         }
 
             .sidebar a {
                 color: white;
                 text-decoration: none;
+                display: block;
+                padding: 12px 20px;
+                transition: background 0.2s;
             }
 
                 .sidebar a:hover {
                     background-color: #495057;
                 }
 
-        /* Верхняя панель под header */
-        .topbar {
-            height: 50px;
-            flex: 0 0 auto;
-        }
+            .sidebar .dropdown-menu {
+                background-color: #495057;
+            }
 
-        /* Main с прокруткой */
-        main.flex-fill {
+            .sidebar .dropdown-item {
+                color: white;
+            }
+
+                .sidebar .dropdown-item:hover {
+                    background-color: #5a6268;
+                }
+
+        .main-content {
             flex: 1 1 auto;
-            overflow: auto;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 20px;
         }
 
-        /* Footer фиксирован, высота = отступу */
         footer {
-            flex: 0 0 auto;
-            height: 60px;
+            flex-shrink: 0;
             background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            padding: 15px 0;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .guest-content {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 20px;
         }
     </style>
 </head>
-<body class="vh-100 d-flex flex-column">
-    <header class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow">
-        <div class="container">
-            <a class="navbar-brand" asp-area="" asp-page="/Index">ООО "Торговые автоматы"</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                    aria-expanded="false" aria-label="Toggle navigation">
+<body>
+    <header class="navbar navbar-expand-sm navbar-light bg-white border-bottom">
+        <div class="container-fluid">
+            <label class="navbar-brand fw-bold">ООО "Торговые автоматы"</label>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            @if (string.IsNullOrEmpty(Context.Session.GetString("jwt_token")))
-            {
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                @if (string.IsNullOrEmpty(Context.Session.GetString("jwt_token")))
+                {
+                    <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Authorization/Auth">Войти в систему</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                            <a class="nav-link" asp-page="/Authorization/Auth">Войти в систему</a>
                         </li>
                     </ul>
-                </div>
-            }
-            else
-            {
-                <div class="dropdown">
-                    <a class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" href="#" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="~/resources/RussiaFlag.png" alt="" width="24" height="24" class="me-2">
-                        <div class="d-flex flex-column">
-                            <small>@Context.Session.GetString("user_name")</small>
-                            <small class="text-muted">@Context.Session.GetString("user_role")</small>
-                        </div>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                        <li><a class="dropdown-item" asp-page="/Account/Profile">Мой профиль</a></li>
-                        <li><a class="dropdown-item" asp-page="/Account/Sessions">Мои сессии</a></li>
-                        <li>
-                            <form method="post" asp-page-handler="Logout">
-                                <button class="dropdown-item" type="submit">Выход</button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
-            }
+                }
+                else
+                {
+                    <div class="dropdown ms-auto">
+                        <a class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle"
+                           href="#" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="~/resources/RussiaFlag.png" alt="RU" width="28" height="28" class="rounded me-2">
+                            <div class="text-start">
+                                <div class="fw-medium">@Context.Session.GetString("user_name")</div>
+                                <small class="text-muted">@Context.Session.GetString("user_role")</small>
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" asp-page="/Account/Profile">Мой профиль</a></li>
+                            <li><a class="dropdown-item" asp-page="/Account/Sessions">Мои сессии</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form method="post" asp-page-handler="Logout" class="d-inline">
+                                    <button type="submit" class="dropdown-item text-danger">Выход</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+            </div>
         </div>
     </header>
 
     @if (!string.IsNullOrEmpty(Context.Session.GetString("jwt_token")))
     {
         <div class="content-wrapper">
-            <div class="sidebar p-0">
-                <div class="p-3 mb-2 border-bottom">
-                    <h5>Навигация</h5>
+            <nav class="sidebar">
+                <div class="p-4 border-bottom">
+                    <h5 class="mb-0 text-white">Навигация</h5>
                 </div>
-                <a class="d-block px-3 py-2" asp-page="/Account/Main">Главная</a>
-                <a class="d-block px-3 py-2" asp-page="/Account/MaintenanceCalendar">Календарь обслуживания</a>
-                <a class="d-block px-3 py-2" asp-page="/Account/WorkSchedule">График работ</a>
-                <a class="d-block px-3 py-2" asp-page="/Account/VendingMachinesTA">ТА</a>
+                <a asp-page="/Account/Profile">Главная</a>
+                <a asp-page="/Account/VendingMachinesTA">ТА</a>
+                <a asp-page="/Account/MaintenanceCalendar">Календарь обслуживания</a>
+                <a asp-page="/Account/WorkSchedule">График работ</a>
 
                 @if (Context.Session.GetString("user_role") == "Администратор")
                 {
-                    <div class="dropdown px-3 py-2">
-                        <a class="text-white dropdown-toggle" href="#" role="button" id="adminMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="dropdown">
+                        <a class="dropdown-toggle px-3 py-2" href="#" role="button" data-bs-toggle="dropdown">
                             Администрирование
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="adminMenu">
+                        <ul class="dropdown-menu">
                             <li><a class="dropdown-item" asp-page="/Account/Admin/VendingMachines">Торговые автоматы</a></li>
                             <li><a class="dropdown-item" asp-page="/Account/Admin/Companies">Компании</a></li>
                             <li><a class="dropdown-item" asp-page="/Account/Admin/Users">Пользователи</a></li>
@@ -148,34 +158,29 @@
                         </ul>
                     </div>
                 }
-            </div>
+            </nav>
 
-            <div class="flex-fill d-flex flex-column">
-                <main class="flex-fill overflow-auto p-3">
-                    @RenderBody()
-                </main>
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="container flex-fill d-flex flex-column">
-            <main role="main" class="pb-3 flex-fill">
+            <main class="main-content">
                 @RenderBody()
             </main>
         </div>
     }
+    else
+    {
+        <main class="guest-content bg-light">
+            @RenderBody()
+        </main>
+    }
 
     <footer>
-        <div class="container p-2">
-            &copy; 2025 - VendingMachines.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
+        <div class="container">
+            &copy; @DateTime.Now.Year - ООО "Торговые автоматы"
         </div>
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
