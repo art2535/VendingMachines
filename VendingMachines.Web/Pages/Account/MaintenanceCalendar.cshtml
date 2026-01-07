@@ -10,22 +10,28 @@
     var firstDayOfMonth = Model.CurrentMonth.Date;
     var startOffset = ((int)firstDayOfMonth.DayOfWeek + 6) % 7;
     var today = DateTime.Today.Date;
-
     var monthNames = CultureInfo.GetCultureInfo("ru-RU").DateTimeFormat.MonthNames.Take(12).ToArray();
-    var years = Enumerable.Range(2020, 11).ToArray();
+    var years = Enumerable.Range(2020, DateTime.Today.Year - 2020 + 6).ToArray();
 }
 
 <div class="container mt-4">
     <h1 class="mb-4">Календарь обслуживания</h1>
 
-    <div class="card mb-4 p-3 shadow-sm">
+    <div class="card mb-4 p-4 shadow-sm">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-auto">
                 <label class="form-label fw-bold">Месяц</label>
                 <select name="month" class="form-select">
                     @for (int m = 1; m <= 12; m++)
                     {
-                        <option value="@m" selected="@(m == Model.CurrentMonth.Month)">@monthNames[m - 1]</option>
+                        if (m == Model.CurrentMonth.Month)
+                        {
+                            <option value="@m" selected="selected">@monthNames[m - 1]</option>
+                        }
+                        else
+                        {
+                            <option value="@m">@monthNames[m - 1]</option>
+                        }
                     }
                 </select>
             </div>
@@ -35,7 +41,14 @@
                 <select name="year" class="form-select">
                     @foreach (var y in years)
                     {
-                        <option value="@y" selected="@(y == Model.CurrentMonth.Year)">@y</option>
+                        if (y == Model.CurrentMonth.Year)
+                        {
+                            <option value="@y" selected="selected">@y</option>
+                        }
+                        else
+                        {
+                            <option value="@y">@y</option>
+                        }
                     }
                 </select>
             </div>
@@ -43,134 +56,134 @@
             <div class="col-auto">
                 <label class="form-label fw-bold">ТА</label>
                 <select name="deviceId" class="form-select">
-                    @foreach (var device in Model.Devices)
+                    <option value="">Все аппараты</option>
+                    @foreach (var d in Model.Devices)
                     {
-                        <option value="@device.Value" selected="@(device.Selected)">@device.Text</option>
+                        @if (!string.IsNullOrEmpty(d.Value))
+                        {
+                            if (d.Selected)
+                            {
+                                <option value="@d.Value" selected="selected">@d.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@d.Value">@d.Text</option>
+                            }
+                        }
                     }
                 </select>
             </div>
 
-            <div class="col-auto">
+            <div class="col-auto d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Перейти</button>
+                <a asp-page="./MaintenanceCalendar"
+                   asp-route-year="@DateTime.Today.Year"
+                   asp-route-month="@DateTime.Today.Month"
+                   asp-route-deviceId="@Model.SelectedDeviceId"
+                   class="btn btn-success">Сегодня</a>
             </div>
 
-            <div class="col-auto">
-                <a asp-page="./MaintenanceCalendar" class="btn btn-success">Сегодня</a>
-            </div>
+            <div class="col-auto ms-auto d-flex gap-2 align-items-end">
+                <a asp-page="./MaintenanceCalendar"
+                   asp-route-year="@prevMonth.Year"
+                   asp-route-month="@prevMonth.Month"
+                   asp-route-deviceId="@Model.SelectedDeviceId"
+                   class="btn btn-outline-secondary btn-lg">«</a>
 
-            <div class="col-auto ms-auto d-flex gap-2">
-                <a asp-page="./MaintenanceCalendar" asp-route-year="@prevMonth.Year" 
-                   asp-route-month="@prevMonth.Month" asp-route-deviceId="@Model.SelectedDeviceId" 
-                   class="btn btn-outline-secondary">«</a>
-                <a asp-page="./MaintenanceCalendar" asp-route-year="@nextMonth.Year" 
-                   asp-route-month="@nextMonth.Month" asp-route-deviceId="@Model.SelectedDeviceId" 
-                   class="btn btn-outline-secondary">»</a>
+                <h2 class="mx-3 my-0 text-center fw-bold">@Model.CurrentMonthName</h2>
+
+                <a asp-page="./MaintenanceCalendar"
+                   asp-route-year="@nextMonth.Year"
+                   asp-route-month="@nextMonth.Month"
+                   asp-route-deviceId="@Model.SelectedDeviceId"
+                   class="btn btn-outline-secondary btn-lg">»</a>
             </div>
         </form>
     </div>
 
-    <h2 class="text-center mb-4">@Model.CurrentMonthName</h2>
-
     @if (Model.Events.Any())
     {
-        <div class="alert alert-info">
-            Найдено событий: <strong>@Model.Events.Count</strong> |
-            Пример: @Model.Events.First().SerialNumber (@Model.Events.First().Type) — @Model.Events.First().Date.ToString("dd.MM.yyyy")
+        <div class="alert alert-success mb-4">
+            Найдено событий обслуживания: <strong>@Model.Events.Count</strong>
         </div>
     }
     else
     {
-        <div class="alert alert-secondary">Событий обслуживания в этом месяце нет.</div>
+        <div class="alert alert-info mb-4">
+            Событий обслуживания в этом месяце нет.
+        </div>
     }
 
     <div class="table-responsive">
-        <table class="table table-bordered calendar-table text-center shadow-sm">
+        <table class="table table-bordered text-center shadow-sm calendar-table">
             <thead class="table-light">
-            <tr><th>Пн</th><th>Вт</th><th>Ср</th><th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th></tr>
+                <tr><th>Пн</th><th>Вт</th><th>Ср</th><th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th></tr>
             </thead>
             <tbody>
-            @{
-                int dayCounter = 1;
-            }
-            @for (int week = 0; week < 6; week++)
-            {
-                <tr>
-                    @for (int weekday = 0; weekday < 7; weekday++)
-                    {
-                        var currentDate = firstDayOfMonth.AddDays(week * 7 + weekday - startOffset).Date;
-                        var isCurrentMonth = currentDate.Month == Model.CurrentMonth.Month;
-                        var eventsToday = Model.Events
-                            .Where(e => e.Date.Date == currentDate).ToList();
+                @{
+                    int dayCounter = 1;
+                }
+                @for (int week = 0; week < 6; week++)
+                {
+                    <tr>
+                        @for (int wd = 0; wd < 7; wd++)
+                        {
+                            var date = firstDayOfMonth.AddDays(week * 7 + wd - startOffset).Date;
+                            var isCurrentMonth = date.Month == Model.CurrentMonth.Month;
+                            var eventsToday = Model.Events.Where(e => e.Date == date).ToList();
 
-                        <td class="@(isCurrentMonth ? "current-month" : "other-month") @(currentDate == today ? "today" : "")"
-                            style="height: 130px; vertical-align: top; padding: 8px;">
-                            @if (isCurrentMonth && dayCounter <= daysInMonth)
-                            {
-                                <div class="day-number fw-bold mb-2">@dayCounter</div>
-
-                                @if (eventsToday.Any())
+                            <td class="@(isCurrentMonth ? "current-month" : "other-month") @(date == today ? "today" : "")"
+                                style="height: 140px; vertical-align: top; padding: 8px; position: relative;">
+                                @if (isCurrentMonth && dayCounter <= daysInMonth)
                                 {
-                                    @foreach (var evt in eventsToday)
-                                    {
-                                        <div class="event mb-1 p-2 rounded small shadow-sm"
-                                             style="background-color: @evt.BackgroundColor; color: @evt.TextColor; font-size: 0.8em; margin-bottom: 2px;"
-                                             title="ТА: @evt.SerialNumber | @evt.Model | @evt.Address | @evt.Franchisee | @evt.Type">
-                                            <strong>@evt.SerialNumber</strong>
-                                            <br /><small>@evt.Type (@evt.Date.ToString("dd.MM"))</small>
-                                        </div>
-                                    }
+                                    <div class="day-number fw-bold text-end mb-1">@dayCounter</div>
+                                    <div class="events-container">
+                                        @if (eventsToday.Any())
+                                        {
+                                            @foreach (var evt in eventsToday)
+                                            {
+                                                <div class="event w-100 p-2 rounded text-white small mb-1"
+                                                     style="background-color:@evt.BackgroundColor; color:@evt.TextColor;"
+                                                     title="ТА: @evt.SerialNumber
+Модель: @evt.Model
+Адрес: @evt.Address
+Франчайзи: @evt.Franchisee
+Тип: @evt.Type
+Дата: @evt.Date.ToString("dd.MM.yyyy")">
+                                                    <strong>@evt.SerialNumber</strong><br>
+                                                    <small>@evt.Type</small>
+                                                </div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">—</small>
+                                        }
+                                    </div>
+                                    dayCounter++;
                                 }
-                                else
-                                {
-                                    <small class="text-muted">—</small>
-                                }
-                                dayCounter++;
-                            }
-                            else
-                            {
-                                @if (!isCurrentMonth && currentDate <= DateTime.Today.Date)
-                                {
-                                    <small class="text-muted">@currentDate.Day</small>
-                                }
-                            }
-                        </td>
-                    }
-                </tr>
-                @if (dayCounter > daysInMonth) { break; }
-            }
+                            </td>
+                        }
+                    </tr>
+                    @if (dayCounter > daysInMonth) 
+                        break;
+                }
             </tbody>
         </table>
     </div>
 </div>
 
 <style>
-    .calendar-table {
-        font-size: 0.95em;
-    }
-    .calendar-table td {
-        background-color: #f9f9f9;
-        position: relative;
-    }
-    .current-month { background-color: white; }
-    .other-month { background-color: #f5f5f5; color: #bbb; }
-    .today {
-        background-color: #e3f2fd !important;
-        border: 3px solid #2196F3;
-        border-radius: 8px;
-    }
-    .day-number {
-        text-align: right;
-        font-size: 1.2em;
-        color: #333;
-    }
-    .event {
-        cursor: help;
-        overflow: hidden;
-        border-radius: 6px;
-        transition: transform 0.1s;
-    }
-    .event:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
+    .calendar-table { table-layout: fixed; width: 100%; }
+    .calendar-table td { height: 140px; background: #f9f9f9; overflow: hidden; }
+    .current-month { background: white; }
+    .other-month { background: #f5f5f5; color: #bbb; }
+    .today { background: #e3f2fd !important; border: 3px solid #2196F3; border-radius: 8px; }
+    .day-number { font-size: 1.1em; text-align: right; color: #333; }
+    .events-container { height: 100px; overflow-y: auto; padding-right: 4px; }
+    .events-container::-webkit-scrollbar { width: 6px; }
+    .events-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    .events-container::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 10px; }
+    .event { cursor: help; font-size: 0.82rem; line-height: 1.2; border-radius: 6px; }
+    .event:hover { box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
 </style>

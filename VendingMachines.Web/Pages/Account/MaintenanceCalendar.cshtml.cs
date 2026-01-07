@@ -31,31 +31,61 @@ public class MaintenanceCalendar : PageModel
 
         var token = HttpContext.Session.GetString("jwt_token");
         if (string.IsNullOrEmpty(token))
-        {
             return RedirectToPage("/Authorization/Auth");
-        }
 
-        using var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient();
         client.BaseAddress = new Uri("https://localhost:7270/");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         try
         {
+            Devices = new List<SelectListItem>
+            {
+                new SelectListItem
+                {
+                    Value = "",
+                    Text = "Все аппараты",
+                    Selected = !deviceId.HasValue
+                }
+            };
+
+            var devicesResponse = await client.GetAsync("api/devices");
+            if (devicesResponse.IsSuccessStatusCode)
+            {
+                var wrapped = await devicesResponse.Content.ReadFromJsonAsync<DevicesWrappedResponse>(
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (wrapped?.Items != null)
+                {
+                    foreach (var d in wrapped.Items.OrderBy(x => x.Name))
+                    {
+                        var text = $"{d.Name} ({d.Model}) — {d.Address}";
+                        if (!string.IsNullOrWhiteSpace(d.Place))
+                            text += $" ({d.Place})";
+
+                        Devices.Add(new SelectListItem
+                        {
+                            Value = d.Id.ToString(),
+                            Text = text,
+                            Selected = d.Id == deviceId
+                        });
+                    }
+                }
+            }
+
             var calendarUrl = $"api/monitoring/maintenance-events?month={CurrentMonth:yyyy-MM-dd}";
             if (deviceId.HasValue)
                 calendarUrl += $"&deviceId={deviceId.Value}";
 
             var calendarResponse = await client.GetAsync(calendarUrl);
-
             if (calendarResponse.IsSuccessStatusCode)
             {
-                var apiResponse = await calendarResponse.Content
-                    .ReadFromJsonAsync<ApiResponse>(new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
+                var apiResponse = await calendarResponse.Content.ReadFromJsonAsync<ApiResponse>(
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                CurrentMonthName = apiResponse?.Month ?? CurrentMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU"));
+                CurrentMonthName = apiResponse?.Month ??
+                    CurrentMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU"));
+
                 Events = (apiResponse?.Events ?? new List<MaintenanceEventDto>())
                     .Select(e => new MaintenanceEventDto
                     {
@@ -75,45 +105,6 @@ public class MaintenanceCalendar : PageModel
             {
                 CurrentMonthName = CurrentMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU"));
                 Events = new();
-            }
-
-            Devices = new List<SelectListItem>
-            {
-                new SelectListItem
-                {
-                    Value = "",
-                    Text = "Все аппараты",
-                    Selected = !deviceId.HasValue
-                }
-            };
-
-            var devicesResponse = await client.GetAsync("api/devices");
-
-            if (devicesResponse.IsSuccessStatusCode)
-            {
-                var wrappedResponse = await devicesResponse.Content
-                    .ReadFromJsonAsync<DevicesWrappedResponse>(new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                if (wrappedResponse?.Items != null && wrappedResponse.Items.Any())
-                {
-                    foreach (var device in wrappedResponse.Items.OrderBy(d => d.Name))
-                    {
-                        var displayText = $"{device.Name} ({device.Model}) — {device.Address}";
-
-                        if (!string.IsNullOrWhiteSpace(device.Place))
-                            displayText += $" ({device.Place})";
-
-                        Devices.Add(new SelectListItem
-                        {
-                            Value = device.Id.ToString(),
-                            Text = displayText,
-                            Selected = device.Id == deviceId
-                        });
-                    }
-                }
             }
         }
         catch (Exception ex)
