@@ -1,39 +1,105 @@
 ﻿@page
 @model VendingMachines.Web.Pages.Authorization.RegisterModel
 @{
-	ViewData["Title"] = "Регистрация в системе";
+    ViewData["Title"] = "Регистрация в системе";
 }
 
-<div>
-	<form asp-action="post">
-		<label>Регистрация в системе</label>
-		<div>
-			<label>Email:</label>
-			<input type="email" asp-for="Email" />
-			<span asp-validation-for="Email" style="color:red; display: block;"></span>
-		</div>
-		<div>
-			<label>Пароль:</label>
-			<input type="password" asp-for="Password" />
-			<span asp-validation-for="Password" style="color:red; display: block;"></span>
-		</div>
-		<div>
-			<label>Повторите пароль:</label>
-			<input type="password" asp-for="RepeatPassword" />
-			<span asp-validation-for="RepeatPassword" style="color:red; display: block;"></span>
-		</div>
-		@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-		{
-			<div style="color: red; text-align: center; margin-bottom: 15px;">
-				@Model.ErrorMessage
-			</div>
-		}
-		<div>
-			<button type="submit" asp-page-handler="Register">Зарегистрироваться</button>
-			<div>
-				<label>Уже есть аккаунт?</label>
-				<button type="submit" asp-page-handler="Login">Войти</button>
-			</div>
-		</div>
-	</form>
+<div class="d-flex align-items-center justify-content-center min-vh-100 px-3 bg-white" style="overflow-y: auto;">
+    <div class="card shadow-lg border-0 rounded-4" style="max-width: 420px; width: 100%; margin: 20px 0;">
+        <div class="card-body p-5">
+            <h2 class="text-center mb-5 fw-bold text-dark" style="font-size: 28px;">Регистрация в системе</h2>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger text-center mb-4 rounded">
+                    @Model.ErrorMessage
+                </div>
+            }
+
+            <form method="post">
+                <div class="mb-4">
+                    <label asp-for="Email" class="form-label fw-medium">Email</label>
+                    <input asp-for="Email" class="form-control form-control-lg rounded-3"
+                           style="background-color: #f8f9fa; border: 2px solid #e1e5e9;"
+                           placeholder="example@mail.com" />
+                    <span asp-validation-for="Email" class="text-danger small d-block mt-1"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Password" class="form-label fw-medium">Пароль</label>
+                    <input asp-for="Password" type="password" class="form-control form-control-lg rounded-3"
+                           style="background-color: #f8f9fa; border: 2px solid #e1e5e9;"
+                           placeholder="••••••••" />
+                    <span asp-validation-for="Password" class="text-danger small d-block mt-1"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="RepeatPassword" class="form-label fw-medium">Повторите пароль</label>
+                    <input asp-for="RepeatPassword" type="password" class="form-control form-control-lg rounded-3"
+                           style="background-color: #f8f9fa; border: 2px solid #e1e5e9;"
+                           placeholder="••••••••" />
+                    <span asp-validation-for="RepeatPassword" class="text-danger small d-block mt-1"></span>
+                </div>
+
+                <div class="d-grid gap-3 mt-4">
+                    <button type="submit" asp-page-handler="Register"
+                            class="btn btn-primary btn-lg rounded-3 shadow-sm fw-semibold"
+                            style="background: linear-gradient(135deg, #667eea, #764ba2); border: none;">
+                        Зарегистрироваться
+                    </button>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">Уже есть аккаунт?</small><br />
+                        <a asp-page="/Authorization/Auth" class="btn btn-link p-0 fw-medium">Войти</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .guest-content {
+        padding: 0 !important;
+        background-color: transparent !important;
+    }
+
+    .d-flex.min-vh-100 {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .card {
+        margin: 20px 0;
+    }
+
+    .form-control {
+        transition: all 0.3s ease;
+    }
+
+        .form-control:focus {
+            border-color: #667eea !important;
+            background-color: white !important;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-link:hover {
+        text-decoration: underline;
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
