@@ -25,6 +25,8 @@ namespace VendingMachines.Web
                 app.UseHsts();
             }
 
+            app.MapGet("/", () => Results.Redirect("/Authorization/Auth"));
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
