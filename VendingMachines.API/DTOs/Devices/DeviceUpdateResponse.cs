@@ -1,6 +1,6 @@
 ﻿namespace VendingMachines.API.DTOs.Devices
 {
-    public class DeviceUpdateDto
+    public class DeviceUpdateResponse
     {
         public int Id { get; set; }
         public int? DeviceModelId { get; set; }
@@ -12,6 +12,6 @@
         public DateTime? CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
-        public LocationDto? Location { get; set; }
+        public LocationResponse? Location { get; set; }
     }
 }
