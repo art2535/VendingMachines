@@ -2,6 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using VendingMachines.API.DTOs;
+using VendingMachines.API.DTOs.Company;
+using VendingMachines.API.DTOs.Role;
 using VendingMachines.API.DTOs.Account;
 using VendingMachines.API.DTOs.Auth;
 using VendingMachines.Core.Models;
@@ -27,111 +30,150 @@ namespace VendingMachines.API.Controllers
             _configuration = configuration;
         }
 
-        [Authorize]
-        [HttpGet("info")]
-        [SwaggerOperation(
-            Summary = "Информация о текущем пользователе",
-            Description = "Возвращает данные текущего авторизованного пользователя, роль и JWT токен из cookies")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Информация о пользователе получена", typeof(UserRequest))]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
-        [SwaggerResponse(StatusCodes.Status404NotFound, "Пользователь не найден")]
-        public async Task<IActionResult> GetUserAsync()
-        {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-
-            var user = await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user == null)
-                return NotFound("Пользователь не найден");
-
-            var token = Request.Cookies["jwt_token"];
-            var userResponse = new UserRequest
-            {
-                Email = user.Email,
-                Password = user.HashedPassword,
-                FirstName = user.FirstName,
-                MiddleName = user.MiddleName,
-                LastName = user.LastName,
-                RoleName = user.Role?.Name,
-                Token = token
-            };
-
-            return Ok(userResponse);
-        }
-
         [HttpPost("register")]
         [SwaggerOperation(
             Summary = "Регистрация нового пользователя",
             Description = "Создает нового пользователя с указанием ФИО, email, телефона, роли, компании и языка")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Пользователь успешно зарегистрирован", typeof(User))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Пользователь успешно зарегистрирован", typeof(UserResponse))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Ошибка валидации данных")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Внутренняя ошибка сервера", typeof(ErrorResponse))]
         public async Task<IActionResult> RegisterAsync(
             [FromBody][SwaggerParameter(Description = "Данные для регистрации нового пользователя")] RegisterRequest request)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                var errorMessage = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .FirstOrDefault()?.ErrorMessage ?? "Ошибка валидации";
+                if (!ModelState.IsValid)
+                {
+                    var errorMessage = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .FirstOrDefault()?.ErrorMessage ?? "Ошибка валидации";
 
-                return BadRequest(errorMessage);
+                    return BadRequest(errorMessage);
+                }
+
+                var user = new User
+                {
+                    LastName = request.LastName,
+                    FirstName = request.FirstName,
+                    MiddleName = request.MiddleName,
+                    Email = request.Email,
+                    Phone = request.Phone,
+                    HashedPassword = request.Password,
+                    RoleId = request.RoleId,
+                    CompanyId = request.CompanyId,
+                    Language = request.Language
+                };
+
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                var registeredUser = await _context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.Company)
+                    .FirstOrDefaultAsync(u => u.Email == user.Email && u.HashedPassword == user.HashedPassword);
+
+                if (registeredUser == null)
+                {
+                    return NotFound($"Пользователь с регистрационными данными {registeredUser?.Email} не найден");
+                }
+
+                return Ok(new RegisterResponse
+                {
+                    User = new UserResponse
+                    {
+                        LastName = user.LastName,
+                        FirstName = user.FirstName,
+                        MiddleName = user.MiddleName ?? "не задан",
+                        Email = user.Email,
+                        Password = user.HashedPassword,
+                        Phone = user.Phone ?? "не задан",
+                        Language = user.Language ?? "не задан",
+                        Role = new RoleResponse
+                        {
+                            Name = user?.Role != null ? user.Role.Name : "не задан",
+                            Description = user?.Role?.Description ?? "не задан"
+                        },
+                        Company = new CompanyResponse
+                        {
+                            Name = user?.Company != null ? user.Company.Name : "не задан",
+                            ContactEmail = user?.Company != null ? user?.Company.ContactEmail : "не задан",
+                            ContactPhone = user?.Company != null ? user?.Company.ContactPhone : "не задан",
+                            Address = user?.Company != null ? user.Company.Address : "не задан"
+                        }
+                    },
+                    Message = "Пользователь успешно зарегистрирован"
+                });
             }
-
-            var user = new User
+            catch (Exception ex)
             {
-                LastName = request.LastName,
-                FirstName = request.FirstName,
-                MiddleName = request.MiddleName,
-                Email = request.Email,
-                Phone = request.Phone,
-                HashedPassword = request.Password,
-                RoleId = request.RoleId,
-                CompanyId = request.CompanyId,
-                Language = request.Language
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return Ok(user);
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpPost("login")]
         [SwaggerOperation(
             Summary = "Вход в систему",
             Description = "Аутентифицирует пользователя по email и паролю. Возвращает JWT-токен и данные пользователя. Токен сохраняется в cookie.")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Авторизация успешна", typeof(UserRequest))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Авторизация успешна", typeof(UserResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Неверные учетные данные")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Внутренняя ошибка сервера", typeof(ErrorResponse))]
         public async Task<IActionResult> LoginAsync(
             [FromBody][SwaggerParameter(Description = "Учетные данные для входа (email и пароль)")] LoginRequest loginRequest)
         {
-            var user = await _context.Users
-                .Include(user => user.Role)
-                .FirstOrDefaultAsync(u => u.Email == loginRequest.Email && u.HashedPassword == loginRequest.Password);
-
-            if (user == null)
+            try
             {
-                return Unauthorized("Пользователь не авторизован");
+                var user = await _context.Users
+                    .Include(user => user.Role)
+                    .Include(user => user.Company)
+                    .FirstOrDefaultAsync(u => u.Email == loginRequest.Email && u.HashedPassword == loginRequest.Password);
+
+                if (user == null)
+                {
+                    return Unauthorized("Пользователь не авторизован");
+                }
+
+                var token = JwtTokenService.GenerateJwtToken(user, _configuration);
+
+                var userResponse = new UserResponse
+                {
+                    LastName = user.LastName,
+                    FirstName = user.FirstName,
+                    MiddleName = user.MiddleName ?? "не задан",
+                    Email = user.Email,
+                    Password = user.HashedPassword,
+                    Phone = user.Phone ?? "не задан",
+                    Language = user.Language ?? "не задан",
+                    Role = new RoleResponse
+                    {
+                        Name = user?.Role != null ? user.Role.Name : "не задан",
+                        Description = user?.Role?.Description ?? "не задан"
+                    },
+                    Company = new CompanyResponse
+                    {
+                        Name = user?.Company != null ? user.Company.Name : "не задан",
+                        ContactEmail = user?.Company != null ? user?.Company.ContactEmail : "не задан",
+                        ContactPhone = user?.Company != null ? user?.Company.ContactPhone : "не задан",
+                        Address = user?.Company != null ? user.Company.Address : "не задан"
+                    },
+                    Token = token
+                };
+
+                Response.Cookies.Append($"jwt_token_user{user?.Id}", token);
+
+                return Ok(userResponse);
             }
-
-            var token = JwtTokenService.GenerateJwtToken(user, _configuration);
-
-            var userResponse = new UserRequest
+            catch (Exception ex)
             {
-                Email = user.Email,
-                Password = user.HashedPassword,
-                FirstName = user.FirstName,
-                MiddleName = user.MiddleName,
-                LastName = user.LastName,
-                RoleName = user.Role.Name,
-                Token = token
-            };
-
-            Response.Cookies.Append("jwt_token", token);
-
-            return Ok(userResponse);
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [Authorize]
@@ -141,14 +183,33 @@ namespace VendingMachines.API.Controllers
             Description = "Генерирует новый JWT токен для текущего авторизованного пользователя")]
         [SwaggerResponse(StatusCodes.Status200OK, "Новый токен сгенерирован", typeof(string))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Внутренняя ошибка сервера", typeof(ErrorResponse))]
         public IActionResult RefreshToken()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var user = _context.Users.FirstOrDefault(u => u.Id.ToString() == userId);
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var user = _context.Users.FirstOrDefault(u => u.Id.ToString() == userId);
 
-            var token = JwtTokenService.GenerateJwtToken(user, _configuration);
+                if (user == null)
+                {
+                    return NotFound("Пользователь не найден");
+                }
 
-            return Ok(token);
+                var token = JwtTokenService.GenerateJwtToken(user, _configuration);
+
+                Response.Cookies.Append($"jwt_token_user{userId}", token);
+
+                return Ok("JWT-токен успешно обновлен");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [Authorize]
@@ -158,10 +219,30 @@ namespace VendingMachines.API.Controllers
             Description = "Удаляет JWT токен из cookies клиента и завершает сессию")]
         [SwaggerResponse(StatusCodes.Status200OK, "Выход выполнен успешно")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Внутренняя ошибка сервера", typeof(ErrorResponse))]
         public IActionResult LogoutAsync()
         {
-            Response.Cookies.Delete("jwt_token");
-            return Ok("Вы вышли из системы");
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var user = _context.Users.FirstOrDefault(u => u.Id.ToString() == userId);
+
+                if (user == null)
+                {
+                    return NotFound("Пользователь не найден");
+                }
+
+                Response.Cookies.Delete($"jwt_token_user{userId}");
+                return Ok("Вы вышли из системы");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
     }
 }
