@@ -11,6 +11,7 @@ using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
 using VendingMachines.Infrastructure.Services;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Threading.Tasks;
 
 namespace VendingMachines.API.Controllers
 {
@@ -58,7 +59,7 @@ namespace VendingMachines.API.Controllers
                     MiddleName = request.MiddleName,
                     Email = request.Email,
                     Phone = request.Phone,
-                    HashedPassword = request.Password,
+                    HashedPassword = PasswordHasher.HashPassword(request.Password),
                     RoleId = request.RoleId,
                     CompanyId = request.CompanyId,
                     Language = request.Language
@@ -127,13 +128,13 @@ namespace VendingMachines.API.Controllers
             try
             {
                 var user = await _context.Users
-                    .Include(user => user.Role)
-                    .Include(user => user.Company)
-                    .FirstOrDefaultAsync(u => u.Email == loginRequest.Email && u.HashedPassword == loginRequest.Password);
+                    .Include(u => u.Role)
+                    .Include(u => u.Company)
+                    .FirstOrDefaultAsync(u => u.Email == loginRequest.Email);
 
-                if (user == null)
+                if (user == null || !PasswordHasher.VerifyPassword(loginRequest.Password, user.HashedPassword))
                 {
-                    return Unauthorized("Пользователь не авторизован");
+                    return Unauthorized("Неверный email или пароль");
                 }
 
                 var token = JwtTokenService.GenerateJwtToken(user, _configuration);
@@ -159,7 +160,9 @@ namespace VendingMachines.API.Controllers
                         ContactPhone = user?.Company != null ? user?.Company.ContactPhone : "не задан",
                         Address = user?.Company != null ? user.Company.Address : "не задан"
                     },
-                    Token = token
+                    Token = !string.IsNullOrEmpty(token)
+                        ? "JWT-токен хранится в Cookies на сервере. Пользователю он недоступен"
+                        : "JWT-токена на сервере нет"
                 };
 
                 Response.Cookies.Append($"jwt_token_user{user?.Id}", token);
@@ -184,12 +187,12 @@ namespace VendingMachines.API.Controllers
         [SwaggerResponse(StatusCodes.Status200OK, "Новый токен сгенерирован", typeof(string))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Внутренняя ошибка сервера", typeof(ErrorResponse))]
-        public IActionResult RefreshToken()
+        public async Task<IActionResult> RefreshTokenAsync()
         {
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var user = _context.Users.FirstOrDefault(u => u.Id.ToString() == userId);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
 
                 if (user == null)
                 {
