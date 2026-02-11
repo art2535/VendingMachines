@@ -1,6 +1,6 @@
 ﻿namespace VendingMachines.API.DTOs.Company
 {
-    public class CompanyResponse
+    public class CompanyRequest
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;

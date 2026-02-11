@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
+using VendingMachines.API.DTOs;
+using VendingMachines.API.DTOs.Company;
 using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
 
@@ -26,26 +28,45 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Получение списка компаний",
             Description = "Возвращает компании с пагинацией и фильтром по части названия")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список компаний получен", typeof(List<Company>))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список компаний получен", typeof(List<CompanyResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetCompaniesAsync(
             [FromQuery][SwaggerParameter(Description = "Количество компаний на странице (по умолчанию 10)")] int limit = 10,
             [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0,
             [FromQuery][SwaggerParameter(Description = "Фильтр по части названия компании")] string nameFilter = "")
         {
-            var query = _context.Companies.AsQueryable();
-
-            if (!string.IsNullOrEmpty(nameFilter))
+            try
             {
-                query = query.Where(company => company.Name.Contains(nameFilter));
+                var query = _context.Companies.AsQueryable();
+
+                if (!string.IsNullOrEmpty(nameFilter))
+                {
+                    query = query.Where(company => company.Name.Contains(nameFilter));
+                }
+
+                var companies = await query.OrderBy(company => company.Id)
+                    .Skip(offset)
+                    .Take(limit)
+                    .Select(company => new CompanyResponse
+                    {
+                        Id = company.Id,
+                        Name = company.Name,
+                        ContactEmail = company.ContactEmail,
+                        ContactPhone = company.ContactPhone,
+                        Address = company.Address
+                    })
+                    .ToListAsync();
+
+                return Ok(companies);
             }
-
-            var companies = await query.OrderBy(company => company.Id)
-                .Skip(offset)
-                .Take(limit)
-                .ToListAsync();
-
-            return Ok(companies);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpPost]
@@ -55,28 +76,47 @@ namespace VendingMachines.API.Controllers
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Ошибка сервера при создании")]
         public async Task<IActionResult> CreateCompanyAsync(
-            [FromBody][SwaggerParameter(Description = "Данные новой компании")] Company company)
+            [FromBody][SwaggerParameter(Description = "Данные новой компании")] CompanyRequest request)
         {
-            if (company == null)
+            try
             {
-                return BadRequest();
+                if (request == null)
+                {
+                    return BadRequest("Пустое тело JSON!");
+                }
+
+                var company = new Company
+                {
+                    Id = request.Id,
+                    Name = request.Name,
+                    ContactEmail = request.ContactEmail,
+                    ContactPhone = request.ContactPhone,
+                    Address = request.Address,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Companies.Add(company);
+                await _context.SaveChangesAsync();
+
+                var createdCompany = await _context.Companies
+                    .FirstOrDefaultAsync(c => c.Id == company.Id);
+
+                if (createdCompany == null)
+                {
+                    throw new Exception("Ошибка при создании компании: компания не найдена после сохранения.");
+                }
+
+                return Created($"api/companies/{createdCompany.Id}", createdCompany);
             }
-
-            company.CreatedAt = DateTime.UtcNow;
-            company.UpdatedAt = DateTime.UtcNow;
-
-            _context.Companies.Add(company);
-            await _context.SaveChangesAsync();
-
-            var createdCompany = await _context.Companies
-                .FirstOrDefaultAsync(c => c.Id == company.Id);
-
-            if (createdCompany == null)
+            catch (Exception ex)
             {
-                return StatusCode(500, "Ошибка при создании компании: компания не найдена после сохранения.");
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
             }
-
-            return Created($"api/companies/{createdCompany.Id}", createdCompany);
         }
 
         [HttpPut("{id}")]
@@ -87,25 +127,36 @@ namespace VendingMachines.API.Controllers
         [SwaggerResponse(StatusCodes.Status404NotFound, "Компания не найдена")]
         public async Task<IActionResult> UpdateCompanyAsync(
             [FromRoute][SwaggerParameter(Description = "ID компании для обновления")] int id,
-            [FromBody][SwaggerParameter(Description = "Обновленные данные компании")] Company company)
+            [FromBody][SwaggerParameter(Description = "Обновленные данные компании")] CompanyRequest request)
         {
-            if (company.Id != id)
+            try
             {
-                return BadRequest();
-            }
+                if (request.Id != id)
+                {
+                    return BadRequest("ID в теле JSON не совпадает с ID в URL");
+                }
 
-            var existingCompany = await _context.Companies.FindAsync(id);
-            if (existingCompany == null)
+                var existingCompany = await _context.Companies.FindAsync(id);
+                if (existingCompany == null)
+                {
+                    return NotFound("Комания не найдена");
+                }
+
+                existingCompany.UpdatedAt = DateTime.UtcNow;
+
+                _context.Entry(existingCompany).CurrentValues.SetValues(request);
+                await _context.SaveChangesAsync();
+
+                return Ok(existingCompany);
+            }
+            catch (Exception ex)
             {
-                return NotFound();
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
             }
-
-            existingCompany.UpdatedAt = DateTime.UtcNow;
-
-            _context.Entry(existingCompany).CurrentValues.SetValues(company);
-            await _context.SaveChangesAsync();
-
-            return Ok(existingCompany);
         }
 
         [HttpDelete("{id}")]
@@ -116,17 +167,28 @@ namespace VendingMachines.API.Controllers
         public async Task<IActionResult> DeleteCompanyAsync(
             [FromRoute][SwaggerParameter(Description = "ID компании для удаления")] int id)
         {
-            var deletedCompany = await _context.Companies.FindAsync(id);
-
-            if (deletedCompany == null)
+            try
             {
-                return NotFound();
+                var deletedCompany = await _context.Companies.FindAsync(id);
+
+                if (deletedCompany == null)
+                {
+                    return NotFound("Комания не найдена");
+                }
+
+                _context.Companies.Remove(deletedCompany);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
             }
-
-            _context.Companies.Remove(deletedCompany);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
     }
 }
