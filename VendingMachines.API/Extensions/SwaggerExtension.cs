@@ -1,4 +1,5 @@
 ﻿using Microsoft.OpenApi.Models;
+using VendingMachines.API.Filters;
 
 namespace VendingMachines.API.Extensions
 {
@@ -16,6 +17,7 @@ namespace VendingMachines.API.Extensions
                     Description = "API для управления торговыми автоматами"
                 });
                 options.EnableAnnotations();
+                options.SchemaFilter<EnumDescriptionSchemaFilter>();
             });
         }
 
