@@ -12,7 +12,7 @@ namespace VendingMachines.API
 
             builder.Services.AddPostgreSQL(builder.Configuration);
 
-            builder.Services.AddJwtAuthenticationWithoutEnvironment(builder.Configuration);
+            builder.Services.AddJwtAuthentication(builder.Configuration);
 
             builder.Services.AddSwagger();
 
