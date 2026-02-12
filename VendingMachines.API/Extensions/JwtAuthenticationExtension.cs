@@ -33,23 +33,10 @@ namespace VendingMachines.API.Extensions
                                 return Task.CompletedTask;
                             }
 
-                            var jwtCookies = context.Request.Cookies
-                                .Where(c => c.Key.StartsWith("jwt_token_user", StringComparison.OrdinalIgnoreCase))
-                                .ToList();
-
-                            if (jwtCookies.Count == 0)
+                            if (context.Request.Cookies.TryGetValue("jwt_token", out var token) &&
+                                !string.IsNullOrEmpty(token) && IsPossibleJwtToken(token))
                             {
-                                return Task.CompletedTask;
-                            }
-
-                            foreach (var cookie in jwtCookies)
-                            {
-                                var candidateToken = cookie.Value;
-
-                                if (IsPossibleJwtToken(candidateToken))
-                                {
-                                    context.Token = candidateToken;
-                                }
+                                context.Token = token;
                             }
 
                             return Task.CompletedTask;
