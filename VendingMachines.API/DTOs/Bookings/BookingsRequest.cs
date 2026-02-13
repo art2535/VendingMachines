@@ -4,7 +4,6 @@ namespace VendingMachines.API.DTOs.Bookings
 {
     public class BookingsRequest
     {
-        public int Id { get; set; }
         public int? DeviceId { get; set; }
         public int? CompanyId { get; set; }
         public DateOnly StartDate { get; set; }

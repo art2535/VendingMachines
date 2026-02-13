@@ -5,8 +5,8 @@ namespace VendingMachines.API.DTOs.Bookings
 {
     public class BookingsResponse
     {
+        public int Id { get; set; }
         public DeviceResponse Device { get; set; } = new();
-        public CompanyResponse Company { get; set; } = new();
         public DateOnly StartDate { get; set; }
         public DateOnly? EndDate { get; set; }
         public string OwnershipType { get; set; } = string.Empty;

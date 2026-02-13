@@ -1,9 +1,8 @@
 ﻿namespace VendingMachines.API.DTOs.Devices
 {
-    public class DeviceTypeResponse
+    public class PaymentMethodResponse
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
     }
 }
