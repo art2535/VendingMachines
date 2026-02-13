@@ -31,8 +31,6 @@ namespace VendingMachines.API.Controllers
         [SwaggerResponse(StatusCodes.Status200OK, "Список компаний получен", typeof(List<CompanyResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetCompaniesAsync(
-            [FromQuery][SwaggerParameter(Description = "Количество компаний на странице (по умолчанию 10)")] int limit = 10,
-            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0,
             [FromQuery][SwaggerParameter(Description = "Фильтр по части названия компании")] string nameFilter = "")
         {
             try
@@ -45,15 +43,13 @@ namespace VendingMachines.API.Controllers
                 }
 
                 var companies = await query.OrderBy(company => company.Id)
-                    .Skip(offset)
-                    .Take(limit)
                     .Select(company => new CompanyResponse
                     {
                         Id = company.Id,
                         Name = company.Name,
-                        ContactEmail = company.ContactEmail,
-                        ContactPhone = company.ContactPhone,
-                        Address = company.Address
+                        ContactEmail = company.ContactEmail ?? "не задан",
+                        ContactPhone = company.ContactPhone ?? "не задан",
+                        Address = company.Address ?? "не задан"
                     })
                     .ToListAsync();
 
@@ -71,7 +67,7 @@ namespace VendingMachines.API.Controllers
 
         [HttpPost]
         [SwaggerOperation(Summary = "Создание новой компании")]
-        [SwaggerResponse(StatusCodes.Status201Created, "Компания успешно создана", typeof(Company))]
+        [SwaggerResponse(StatusCodes.Status201Created, "Компания успешно создана", typeof(CompanyResponse))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Некорректные данные компании")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Ошибка сервера при создании")]
@@ -87,7 +83,7 @@ namespace VendingMachines.API.Controllers
 
                 var company = new Company
                 {
-                    Id = request.Id,
+                    Id = await _context.Companies.MaxAsync(c => c.Id) + 1,
                     Name = request.Name,
                     ContactEmail = request.ContactEmail,
                     ContactPhone = request.ContactPhone,
@@ -99,15 +95,16 @@ namespace VendingMachines.API.Controllers
                 _context.Companies.Add(company);
                 await _context.SaveChangesAsync();
 
-                var createdCompany = await _context.Companies
-                    .FirstOrDefaultAsync(c => c.Id == company.Id);
-
-                if (createdCompany == null)
+                var createdCompany = new CompanyResponse
                 {
-                    throw new Exception("Ошибка при создании компании: компания не найдена после сохранения.");
-                }
+                    Id = company.Id,
+                    Name = company.Name,
+                    ContactEmail = company.ContactEmail ?? "не задан",
+                    ContactPhone = company.ContactPhone ?? "не задан",
+                    Address = company.Address ?? "не задан"
+                };
 
-                return Created($"api/companies/{createdCompany.Id}", createdCompany);
+                return Created($"api/companies/{company.Id}", createdCompany);
             }
             catch (Exception ex)
             {
@@ -131,11 +128,6 @@ namespace VendingMachines.API.Controllers
         {
             try
             {
-                if (request.Id != id)
-                {
-                    return BadRequest("ID в теле JSON не совпадает с ID в URL");
-                }
-
                 var existingCompany = await _context.Companies.FindAsync(id);
                 if (existingCompany == null)
                 {

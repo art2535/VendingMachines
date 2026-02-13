@@ -43,45 +43,53 @@ namespace VendingMachines.API.Controllers
                     .Include(b => b.Company)
                     .Select(b => new BookingsResponse
                     {
-                        Device = new DeviceResponse
+                        Id = b.Id,
+                        Device = b.Device != null ? new DeviceResponse
                         {
-                            Model = new ModelResponse
+                            Id = b.Device.Id,
+                            Model = b.Device.DeviceModel != null ? new ModelResponse
                             {
-                                Name = b.Device.DeviceModel.Name,
-                                DeviceType = new DeviceTypeResponse
+                                Id = b.Id,
+                                Name = b.Device.DeviceModel.Name ?? "не задан",
+                                DeviceType = b.Device.DeviceModel.DeviceType != null ? new DeviceTypeResponse
                                 {
+                                    Id = b.Device.DeviceModel.DeviceType.Id,
                                     Name = b.Device.DeviceModel.DeviceType.Name,
-                                    Description = b.Device.DeviceModel.DeviceType.Description
-                                },
-                                Description = b.Device.DeviceModel.Description
-                            },
-                            Location = new LocationResponse
+                                    Description = b.Device.DeviceModel.DeviceType.Description ?? "не задан"
+                                } : new DeviceTypeResponse(),
+                                Description = b.Device.DeviceModel.Description ?? "не задан"
+                            } : new ModelResponse(),
+                            Location = b.Device.Location != null ? new LocationResponse
                             {
-                                InstallationAddress = b.Device.Location.InstallationAddress,
+                                Id = b.Device.Location.Id,
+                                InstallationAddress = b.Device.Location.InstallationAddress ?? "не задан",
                                 PlaceDescription = b.Device.Location.PlaceDescription
-                            },
-                            Modem = new ModemResponse
+                            } : new LocationResponse(),
+                            Modem = b.Device.Modem != null ? new ModemResponse
                             {
-                                Brand = b.Device.Modem.Brand,
+                                Id = b.Device.Modem.Id,
+                                Brand = b.Device.Modem.Brand ?? "не задан",
                                 SerialNumber = b.Device.Modem.SerialNumber,
-                                Provider = b.Device.Modem.Provider,
+                                Provider = b.Device.Modem.Provider ?? "не задан",
                                 Balance = b.Device.Modem.Balance ?? 0
-                            },
-                            DeviceStatus = new DeviceStatusResponse
+                            } : new ModemResponse(),
+                            DeviceStatus = b.Device.DeviceStatus != null ? new DeviceStatusResponse
                             {
-                                Name = b.Device.DeviceStatus.Name,
-                                ColorCode = b.Device.DeviceStatus.ColorCode
-                            },
+                                Id = b.Device.DeviceStatus.Id,
+                                Name = b.Device.DeviceStatus.Name ?? "не задан",
+                                ColorCode = b.Device.DeviceStatus.ColorCode ?? "не задан"
+                            } : new DeviceStatusResponse(),
+                            Company = b.Device.Company != null ? new CompanyResponse
+                            {
+                                Id = b.Device.Company.Id,
+                                Name = b.Device.Company.Name ?? "не задан",
+                                ContactEmail = b.Device.Company.ContactEmail ?? "не задан",
+                                ContactPhone = b.Device.Company.ContactPhone ?? "не задан",
+                                Address = b.Device.Company.Address ?? "не задан"
+                            } : new CompanyResponse(),
                             InstallationDate = b.Device.InstallationDate,
                             LastServiceDate = b.Device.LastServiceDate
-                        },
-                        Company = new CompanyResponse
-                        {
-                            Name = b.Company.Name,
-                            ContactEmail = b.Company.ContactEmail,
-                            ContactPhone = b.Company.ContactPhone,
-                            Address = b.Company.Address
-                        },
+                        } : new DeviceResponse(),
                         StartDate = b.StartDate,
                         EndDate = b.EndDate,
                         OwnershipType = b.OwnershipType,
@@ -129,7 +137,7 @@ namespace VendingMachines.API.Controllers
 
                 var booking = new Booking
                 {
-                    Id = request.Id,
+                    Id = await _context.Bookings.MaxAsync(b => b.Id) + 1,
                     DeviceId = request.DeviceId,
                     CompanyId = request.CompanyId,
                     StartDate = request.StartDate,
@@ -145,7 +153,70 @@ namespace VendingMachines.API.Controllers
                 _context.Bookings.Add(booking);
                 await _context.SaveChangesAsync();
 
-                return Created($"api/bookings/{booking.Id}", booking);
+                var createdBooking = await _context.Bookings
+                    .Include(b => b.Device)
+                    .Include(b => b.Company)
+                    .Select(b => new BookingsResponse
+                    {
+                        Id = b.Id,
+                        Device = b.Device != null ? new DeviceResponse
+                        {
+                            Id = b.Device.Id,
+                            Model = b.Device.DeviceModel != null ? new ModelResponse
+                            {
+                                Id = b.Id,
+                                Name = b.Device.DeviceModel.Name ?? "не задан",
+                                DeviceType = b.Device.DeviceModel.DeviceType != null ? new DeviceTypeResponse
+                                {
+                                    Id = b.Device.DeviceModel.DeviceType.Id,
+                                    Name = b.Device.DeviceModel.DeviceType.Name,
+                                    Description = b.Device.DeviceModel.DeviceType.Description ?? "не задан"
+                                } : new DeviceTypeResponse(),
+                                Description = b.Device.DeviceModel.Description ?? "не задан"
+                            } : new ModelResponse(),
+                            Location = b.Device.Location != null ? new LocationResponse
+                            {
+                                Id = b.Device.Location.Id,
+                                InstallationAddress = b.Device.Location.InstallationAddress ?? "не задан",
+                                PlaceDescription = b.Device.Location.PlaceDescription
+                            } : new LocationResponse(),
+                            Modem = b.Device.Modem != null ? new ModemResponse
+                            {
+                                Id = b.Device.Modem.Id,
+                                Brand = b.Device.Modem.Brand ?? "не задан",
+                                SerialNumber = b.Device.Modem.SerialNumber,
+                                Provider = b.Device.Modem.Provider ?? "не задан",
+                                Balance = b.Device.Modem.Balance ?? 0
+                            } : new ModemResponse(),
+                            DeviceStatus = b.Device.DeviceStatus != null ? new DeviceStatusResponse
+                            {
+                                Id = b.Device.DeviceStatus.Id,
+                                Name = b.Device.DeviceStatus.Name ?? "не задан",
+                                ColorCode = b.Device.DeviceStatus.ColorCode ?? "не задан"
+                            } : new DeviceStatusResponse(),
+                            Company = b.Device.Company != null ? new CompanyResponse
+                            {
+                                Id = b.Device.Company.Id,
+                                Name = b.Device.Company.Name ?? "не задан",
+                                ContactEmail = b.Device.Company.ContactEmail ?? "не задан",
+                                ContactPhone = b.Device.Company.ContactPhone ?? "не задан",
+                                Address = b.Device.Company.Address ?? "не задан"
+                            } : new CompanyResponse(),
+                            InstallationDate = b.Device.InstallationDate,
+                            LastServiceDate = b.Device.LastServiceDate
+                        } : new DeviceResponse(),
+                        StartDate = b.StartDate,
+                        EndDate = b.EndDate,
+                        OwnershipType = b.OwnershipType,
+                        Insurance = b.Insurance,
+                        MonthlyCost = b.MonthlyCost,
+                        AnnualCost = b.AnnualCost,
+                        PaybackPeriod = b.PaybackPeriod,
+                        Status = b.Status ?? "не задан"
+                    })
+                    .FirstOrDefaultAsync();
+
+                return Created($"api/bookings/{booking.Id}", createdBooking);
             }
             catch (Exception ex)
             {

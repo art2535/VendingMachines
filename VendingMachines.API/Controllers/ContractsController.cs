@@ -31,9 +31,7 @@ namespace VendingMachines.API.Controllers
         [SwaggerResponse(StatusCodes.Status200OK, "Список договоров получен", typeof(List<ContractResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetContractsAsync(
-            [FromQuery][SwaggerParameter(Description = "ID компании для фильтрации (опционально)")] int? companyId = null,
-            [FromQuery][SwaggerParameter(Description = "Количество договоров на странице (по умолчанию 10)")] int limit = 10,
-            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0)
+            [FromQuery][SwaggerParameter(Description = "ID компании для фильтрации (опционально)")] int? companyId = null)
         {
             try
             {
@@ -47,18 +45,16 @@ namespace VendingMachines.API.Controllers
                 }
 
                 var contracts = await query.OrderBy(c => c.Id)
-                    .Skip(offset)
-                    .Take(limit)
                     .Select(contract => new ContractResponse
                     {
-                        Company = new CompanyResponse
+                        Company = contract.Company != null ? new CompanyResponse
                         {
                             Id = contract.Id,
                             Name = contract.Company.Name,
-                            ContactEmail = contract.Company.ContactEmail,
-                            ContactPhone = contract.Company.ContactPhone,
-                            Address = contract.Company.Address
-                        },
+                            ContactEmail = contract.Company.ContactEmail ?? "не задан",
+                            ContactPhone = contract.Company.ContactPhone ?? "не задан",
+                            Address = contract.Company.Address ?? "не задан"
+                        } : new CompanyResponse(),
                         ContractNumber = contract.ContractNumber,
                         SigningDate = contract.SigningDate,
                         EndDate = contract.EndDate,

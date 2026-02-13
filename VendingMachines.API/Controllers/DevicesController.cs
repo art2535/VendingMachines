@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
+using VendingMachines.API.DTOs;
+using VendingMachines.API.DTOs.Company;
 using VendingMachines.API.DTOs.Devices;
 using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace VendingMachines.API.Controllers
 {
@@ -27,189 +29,381 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Список аппаратов с фильтрацией и пагинацией",
             Description = "Возвращает аппараты с информацией о моделях, компаниях, модемах и локациях. Поддерживает поиск по названию")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список аппаратов с пагинацией", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список аппаратов с пагинацией", typeof(DeviceResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetDevicesAsync(
-            [FromQuery][SwaggerParameter(Description = "Количество аппаратов на странице (по умолчанию 10)")] int limit = 10,
-            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0,
             [FromQuery][SwaggerParameter(Description = "Фильтр поиска по названию модели, типа или компании")] string nameFilter = "")
         {
-            var query = from device in _context.Devices
-                        join model in _context.DeviceModels on device.DeviceModelId equals model.Id
-                        join type in _context.DeviceTypes on model.DeviceTypeId equals type.Id
-                        join company in _context.Companies on device.CompanyId equals company.Id into compJoin
-                        from company in compJoin.DefaultIfEmpty()
-                        join modem in _context.Modems on device.ModemId equals modem.Id into modemJoin
-                        from modem in modemJoin.DefaultIfEmpty()
-                        join location in _context.Locations on device.LocationId equals location.Id into locJoin
-                        from location in locJoin.DefaultIfEmpty()
-                        where string.IsNullOrEmpty(nameFilter)
-                            || model.Name.ToLower().Contains(nameFilter.ToLower())
-                            || type.Name.ToLower().Contains(nameFilter.ToLower())
-                            || (company != null && company.Name.ToLower().Contains(nameFilter.ToLower()))
-                        orderby device.Id ascending
-                        select new DeviceListItem
-                        {
-                            Id = device.Id,
-                            Name = model.Name,
-                            Model = type.Name,
-                            Company = company != null ? company.Name : "—",
-                            ModemId = modem != null ? modem.Id : 0,
-                            Address = location != null ? location.InstallationAddress : "—",
-                            InstallationDate = device.InstallationDate
-                        };
-
-            int totalCount = await query.CountAsync();
-            var result = await query
-                .Skip(offset)
-                .Take(limit)
-                .ToListAsync();
-
-            return Ok(new
+            try
             {
-                totalCount,
-                items = result
-            });
+                var query = _context.Devices
+                    .AsNoTracking()
+                    .Include(d => d.DeviceModel)
+                        .ThenInclude(m => m.DeviceType)
+                    .Include(d => d.DeviceStatus)
+                    .Include(d => d.Company)
+                    .Include(d => d.Modem)
+                    .Include(d => d.Location)
+                    .Where(d =>
+                        string.IsNullOrEmpty(nameFilter) ||
+                        d.DeviceModel.Name.ToLower().Contains(nameFilter.ToLower()) ||
+                        d.DeviceModel.DeviceType.Name.ToLower().Contains(nameFilter.ToLower()) ||
+                        (d.Company != null && d.Company.Name.ToLower().Contains(nameFilter.ToLower())))
+                    .OrderBy(d => d.Id)
+                    .Select(d => new DeviceResponse
+                    {
+                        Id = d.Id,
+                        Model = d.DeviceModel != null ? new ModelResponse
+                        {
+                            Id = d.DeviceModel.Id,
+                            Name = d.DeviceModel.Name,
+                            Description = d.DeviceModel.Description ?? "",
+                            DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
+                            {
+                                Id = d.DeviceModel.DeviceType.Id,
+                                Name = d.DeviceModel.DeviceType.Name,
+                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                            } : new DeviceTypeResponse()
+                        } : new ModelResponse(),
+                        Location = d.Location != null ? new LocationResponse
+                        {
+                            Id = d.Location.Id,
+                            InstallationAddress = d.Location.InstallationAddress,
+                            PlaceDescription = d.Location.PlaceDescription
+                        } : new LocationResponse(),
+                        Modem = d.Modem != null ? new ModemResponse
+                        {
+                            Id = d.Modem.Id,
+                            Brand = d.Modem.Brand ?? "",
+                            SerialNumber = d.Modem.SerialNumber ?? "",
+                            Provider = d.Modem.Provider ?? "",
+                            Balance = d.Modem.Balance
+                        } : new ModemResponse(),
+                        DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
+                        {
+                            Id = d.DeviceStatus.Id,
+                            Name = d.DeviceStatus.Name,
+                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                        } : new DeviceStatusResponse(),
+                        Company = d.Company != null ? new CompanyResponse
+                        {
+                            Id = d.Company.Id,
+                            Name = d.Company.Name,
+                            ContactEmail = d.Company.ContactEmail ?? "не задан",
+                            ContactPhone = d.Company.ContactPhone ?? "не задан",
+                            Address = d.Company.Address ?? "не задан"
+                        } : new CompanyResponse(),
+                        InstallationDate = d.InstallationDate,
+                        LastServiceDate = d.LastServiceDate
+                    });
+
+                return Ok(await query.ToListAsync());
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpGet("{id}")]
         [SwaggerOperation(Summary = "Получение аппарата по ID")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Аппарат найден", typeof(DeviceListItem))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Аппарат найден", typeof(DeviceResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Аппарат не найден")]
-        public async Task<IActionResult> GetDeviceByIdAsync(
-            [FromRoute][SwaggerParameter(Description = "ID аппарата")] int id)
+        public async Task<IActionResult> GetDeviceByIdAsync([FromRoute][SwaggerParameter(Description = "ID аппарата")] int id)
         {
-            var query = from device in _context.Devices
-                        join model in _context.DeviceModels on device.DeviceModelId equals model.Id
-                        join type in _context.DeviceTypes on model.DeviceTypeId equals type.Id
-                        join company in _context.Companies on device.CompanyId equals company.Id into compJoin
-                        from company in compJoin.DefaultIfEmpty()
-                        join modem in _context.Modems on device.ModemId equals modem.Id into modemJoin
-                        from modem in modemJoin.DefaultIfEmpty()
-                        join location in _context.Locations on device.LocationId equals location.Id into locJoin
-                        from location in locJoin.DefaultIfEmpty()
-                        where device.Id == id
-                        select new DeviceListItem
+            try
+            {
+                var query = _context.Devices
+                    .AsNoTracking()
+                    .Include(d => d.DeviceModel)
+                        .ThenInclude(m => m.DeviceType)
+                    .Include(d => d.DeviceStatus)
+                    .Include(d => d.Company)
+                    .Include(d => d.Modem)
+                    .Include(d => d.Location)
+                    .Where(d => d.Id == id)
+                    .OrderBy(d => d.Id)
+                    .Select(d => new DeviceResponse
+                    {
+                        Id = d.Id,
+                        Model = d.DeviceModel != null ? new ModelResponse
                         {
-                            Id = device.Id,
-                            Name = model.Name,
-                            Model = type.Name,
-                            Company = company != null ? company.Name : "—",
-                            ModemId = modem != null ? modem.Id : 0,
-                            Address = location != null ? location.InstallationAddress : "—",
-                            Place = location != null ? location.PlaceDescription : "—",
-                            InstallationDate = device.InstallationDate
-                        };
+                            Id = d.DeviceModel.Id,
+                            Name = d.DeviceModel.Name,
+                            Description = d.DeviceModel.Description ?? "",
+                            DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
+                            {
+                                Id = d.DeviceModel.DeviceType.Id,
+                                Name = d.DeviceModel.DeviceType.Name,
+                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                            } : new DeviceTypeResponse()
+                        } : new ModelResponse(),
+                        Location = d.Location != null ? new LocationResponse
+                        {
+                            Id = d.Location.Id,
+                            InstallationAddress = d.Location.InstallationAddress,
+                            PlaceDescription = d.Location.PlaceDescription
+                        } : new LocationResponse(),
+                        Modem = d.Modem != null ? new ModemResponse
+                        {
+                            Id = d.Modem.Id,
+                            Brand = d.Modem.Brand ?? "",
+                            SerialNumber = d.Modem.SerialNumber ?? "",
+                            Provider = d.Modem.Provider ?? "",
+                            Balance = d.Modem.Balance
+                        } : new ModemResponse(),
+                        DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
+                        {
+                            Id = d.DeviceStatus.Id,
+                            Name = d.DeviceStatus.Name,
+                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                        } : new DeviceStatusResponse(),
+                        Company = d.Company != null ? new CompanyResponse
+                        {
+                            Id = d.Company.Id,
+                            Name = d.Company.Name,
+                            ContactEmail = d.Company.ContactEmail ?? "не задан",
+                            ContactPhone = d.Company.ContactPhone ?? "не задан",
+                            Address = d.Company.Address ?? "не задан"
+                        } : new CompanyResponse(),
+                        InstallationDate = d.InstallationDate,
+                        LastServiceDate = d.LastServiceDate
+                    });
 
-            var result = await query.FirstOrDefaultAsync();
+                var result = await query.FirstOrDefaultAsync();
 
-            return Ok(result);
+                if (result == null)
+                    return NotFound($"Аппарат с ID = {id} не найден");
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpPost]
         [SwaggerOperation(Summary = "Создание нового аппарата")]
-        [SwaggerResponse(StatusCodes.Status201Created, "Аппарат успешно создан", typeof(Device))]
+        [SwaggerResponse(StatusCodes.Status201Created, "Аппарат успешно создан", typeof(DeviceResponse))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Некорректные данные")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Ошибка сервера")]
         public async Task<IActionResult> CreateNewDeviceAsync(
-            [FromBody][SwaggerParameter(Description = "Данные нового аппарата")] Device device)
+            [FromBody][SwaggerParameter(Description = "Данные нового аппарата")] DeviceRequest request)
         {
-            if (device == null)
+            try
             {
-                return BadRequest("Устройство не может быть null.");
+                if (request == null)
+                {
+                    return BadRequest("Устройство не может быть null.");
+                }
+
+                var device = new Device
+                {
+                    Id = await _context.Devices.MaxAsync(d => d.Id) + 1,
+                    DeviceModelId = request.DeviceModelId,
+                    LocationId = request.LocationId,
+                    ModemId = request.ModemId,
+                    DeviceStatusId = request.DeviceStatusId,
+                    CompanyId = request.CompanyId,
+                    InstallationDate = request.InstallationDate,
+                    LastServiceDate = request.LastServiceDate,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Devices.Add(device);
+                await _context.SaveChangesAsync();
+
+                var query = _context.Devices
+                    .AsNoTracking()
+                    .Include(d => d.DeviceModel)
+                        .ThenInclude(m => m.DeviceType)
+                    .Include(d => d.DeviceStatus)
+                    .Include(d => d.Company)
+                    .Include(d => d.Modem)
+                    .Include(d => d.Location)
+                    .Where(d => d.Id == device.Id)
+                    .OrderBy(d => d.Id)
+                    .Select(d => new DeviceResponse
+                    {
+                        Id = d.Id,
+                        Model = d.DeviceModel != null ? new ModelResponse
+                        {
+                            Id = d.DeviceModel.Id,
+                            Name = d.DeviceModel.Name,
+                            Description = d.DeviceModel.Description ?? "",
+                            DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
+                            {
+                                Id = d.DeviceModel.DeviceType.Id,
+                                Name = d.DeviceModel.DeviceType.Name,
+                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                            } : new DeviceTypeResponse()
+                        } : new ModelResponse(),
+                        Location = d.Location != null ? new LocationResponse
+                        {
+                            Id = d.Location.Id,
+                            InstallationAddress = d.Location.InstallationAddress,
+                            PlaceDescription = d.Location.PlaceDescription
+                        } : new LocationResponse(),
+                        Modem = d.Modem != null ? new ModemResponse
+                        {
+                            Id = d.Modem.Id,
+                            Brand = d.Modem.Brand ?? "",
+                            SerialNumber = d.Modem.SerialNumber ?? "",
+                            Provider = d.Modem.Provider ?? "",
+                            Balance = d.Modem.Balance
+                        } : new ModemResponse(),
+                        DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
+                        {
+                            Id = d.DeviceStatus.Id,
+                            Name = d.DeviceStatus.Name,
+                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                        } : new DeviceStatusResponse(),
+                        Company = d.Company != null ? new CompanyResponse
+                        {
+                            Id = d.Company.Id,
+                            Name = d.Company.Name,
+                            ContactEmail = d.Company.ContactEmail ?? "не задан",
+                            ContactPhone = d.Company.ContactPhone ?? "не задан",
+                            Address = d.Company.Address ?? "не задан"
+                        } : new CompanyResponse(),
+                        InstallationDate = d.InstallationDate,
+                        LastServiceDate = d.LastServiceDate
+                    });
+
+                var createdDevice = await query.FirstOrDefaultAsync();
+
+                if (createdDevice == null)
+                {
+                    return NotFound("Ошибка при создании устройства: устройство не найдено после сохранения");
+                }
+
+                return Created($"api/devices/{device.Id}", createdDevice);
             }
-
-            device.CreatedAt = DateTime.UtcNow;
-            device.UpdatedAt = DateTime.UtcNow;
-
-            _context.Devices.Add(device);
-            await _context.SaveChangesAsync();
-
-            var createdDevice = await _context.Devices
-                .Include(d => d.DeviceModel)
-                .Include(d => d.Location)
-                .Include(d => d.Modem)
-                .Include(d => d.DeviceStatus)
-                .Include(d => d.Company)
-                .Where(d => d.Id == device.Id)
-                .FirstOrDefaultAsync();
-
-            if (createdDevice == null)
+            catch (Exception ex)
             {
-                return StatusCode(500, "Ошибка при создании устройства: устройство не найдено после сохранения.");
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
             }
-
-            return Created($"api/devices/{createdDevice.Id}", createdDevice);
         }
 
         [HttpPut("{id}")]
         [SwaggerOperation(Summary = "Полное обновление аппарата")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Аппарат успешно обновлен", typeof(Device))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Аппарат успешно обновлен", typeof(DeviceResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Аппарат не найден")]
         public async Task<IActionResult> UpdateDeviceAsync(
             [FromRoute][SwaggerParameter(Description = "ID аппарата для обновления")] int id,
-            [FromBody][SwaggerParameter(Description = "Обновленные данные аппарата")] DeviceUpdateDto dto)
+            [FromBody][SwaggerParameter(Description = "Обновленные данные аппарата")] DeviceUpdateResponse request)
         {
-            var existingDevice = await _context.Devices
-                .Include(d => d.Location)
-                .AsTracking()
-                .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (existingDevice == null)
-                return NotFound("Устройство с указанным ID не найдено");
-
-            existingDevice.UpdatedAt = DateTime.UtcNow;
-            existingDevice.DeviceModelId = dto.DeviceModelId;
-            existingDevice.ModemId = dto.ModemId;
-            existingDevice.CompanyId = dto.CompanyId;
-            existingDevice.DeviceStatusId = dto.DeviceStatusId;
-            existingDevice.CreatedAt = dto.CreatedAt ?? existingDevice.CreatedAt;
-            existingDevice.InstallationDate = dto.InstallationDate != default ? dto.InstallationDate : existingDevice.InstallationDate;
-            existingDevice.LastServiceDate = dto.LastServiceDate ?? existingDevice.LastServiceDate;
-
-            if (dto.Location != null)
+            try
             {
-                if (existingDevice.Location == null || !existingDevice.LocationId.HasValue)
-                {
-                    var newLocation = new Location
-                    {
-                        InstallationAddress = dto.Location.InstallationAddress ?? string.Empty,
-                        PlaceDescription = dto.Location.PlaceDescription ?? string.Empty
-                    };
-                    _context.Locations.Add(newLocation);
-                    await _context.SaveChangesAsync();
+                var existingDevice = await _context.Devices
+                    .Include(d => d.Location)
+                    .AsTracking()
+                    .FirstOrDefaultAsync(d => d.Id == id);
 
-                    existingDevice.LocationId = newLocation.Id;
-                }
-                else
-                {
-                    var existingLocation = await _context.Locations
-                        .FirstOrDefaultAsync(l => l.Id == existingDevice.LocationId);
-                    if (existingLocation != null)
+                if (existingDevice == null)
+                    return NotFound($"Аппарат с ID = {id} не найден");
+
+                existingDevice.UpdatedAt = DateTime.UtcNow;
+                existingDevice.DeviceModelId = request.DeviceModelId;
+                existingDevice.LocationId = request.LocationId;
+                existingDevice.ModemId = request.ModemId;
+                existingDevice.CompanyId = request.CompanyId;
+                existingDevice.DeviceStatusId = request.DeviceStatusId;
+                existingDevice.InstallationDate = request.InstallationDate != default ? request.InstallationDate : existingDevice.InstallationDate;
+                existingDevice.LastServiceDate = request.LastServiceDate ?? existingDevice.LastServiceDate;
+
+                _context.Devices.Update(existingDevice);
+                await _context.SaveChangesAsync();
+
+                var updated = await _context.Devices
+                    .AsNoTracking()
+                    .Include(d => d.DeviceModel)
+                        .ThenInclude(m => m.DeviceType)
+                    .Include(d => d.DeviceStatus)
+                    .Include(d => d.Company)
+                    .Include(d => d.Modem)
+                    .Include(d => d.Location)
+                    .Where(d => d.Id == id)
+                    .Select(d => new DeviceResponse
                     {
-                        existingLocation.InstallationAddress = dto.Location.InstallationAddress
-                            ?? existingLocation.InstallationAddress;
-                        existingLocation.PlaceDescription = dto.Location.PlaceDescription ?? existingLocation.PlaceDescription;
-                        _context.Entry(existingLocation).State = EntityState.Modified;
-                    }
+                        Id = d.Id,
+                        Model = d.DeviceModel != null ? new ModelResponse
+                        {
+                            Id = d.DeviceModel.Id,
+                            Name = d.DeviceModel.Name,
+                            Description = d.DeviceModel.Description ?? "",
+                            DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
+                            {
+                                Id = d.DeviceModel.DeviceType.Id,
+                                Name = d.DeviceModel.DeviceType.Name,
+                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                            } : new DeviceTypeResponse()
+                        } : new ModelResponse(),
+                        Location = d.Location != null ? new LocationResponse
+                        {
+                            Id = d.Location.Id,
+                            InstallationAddress = d.Location.InstallationAddress,
+                            PlaceDescription = d.Location.PlaceDescription
+                        } : new LocationResponse(),
+                        Modem = d.Modem != null ? new ModemResponse
+                        {
+                            Id = d.Modem.Id,
+                            Brand = d.Modem.Brand ?? "",
+                            SerialNumber = d.Modem.SerialNumber ?? "",
+                            Provider = d.Modem.Provider ?? "",
+                            Balance = d.Modem.Balance
+                        } : new ModemResponse(),
+                        DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
+                        {
+                            Id = d.DeviceStatus.Id,
+                            Name = d.DeviceStatus.Name,
+                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                        } : new DeviceStatusResponse(),
+                        Company = d.Company != null ? new CompanyResponse
+                        {
+                            Id = d.Company.Id,
+                            Name = d.Company.Name,
+                            ContactEmail = d.Company.ContactEmail ?? "не задан",
+                            ContactPhone = d.Company.ContactPhone ?? "не задан",
+                            Address = d.Company.Address ?? "не задан"
+                        } : new CompanyResponse(),
+                        InstallationDate = d.InstallationDate,
+                        LastServiceDate = d.LastServiceDate
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (updated == null)
+                {
+                    return NotFound($"Обновленный аппарат с ID = {id} не найден");
                 }
+
+                return Ok(updated);
             }
-
-            _context.Entry(existingDevice).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            var updated = await _context.Devices
-                .Include(d => d.DeviceModel)
-                .Include(d => d.Location)
-                .Include(d => d.Company)
-                .Include(d => d.Modem)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.Id == id);
-
-            return Ok(updated);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -220,16 +414,27 @@ namespace VendingMachines.API.Controllers
         public async Task<IActionResult> DeleteDeviceAsync(
             [FromRoute][SwaggerParameter(Description = "ID аппарата для удаления")] int id)
         {
-            var device = await _context.Devices.FindAsync(id);
-            if (device == null)
+            try
             {
-                return NotFound();
+                var device = await _context.Devices.FindAsync(id);
+                if (device == null)
+                {
+                    return NotFound($"Аппарат с ID = {id} не найден");
+                }
+
+                _context.Devices.Remove(device);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
             }
-
-            _context.Devices.Remove(device);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpPatch("{id}/detach-modem")]
@@ -240,78 +445,181 @@ namespace VendingMachines.API.Controllers
         public async Task<IActionResult> DetachModemAsync(
             [FromRoute][SwaggerParameter(Description = "ID аппарата")] int id)
         {
-            var device = await _context.Devices.FindAsync(id);
-            if (device == null)
+            try
             {
-                return NotFound();
+                var device = await _context.Devices.FindAsync(id);
+                if (device == null)
+                {
+                    return NotFound($"Аппарат с ID = {id} не найден");
+                }
+
+                device.ModemId = null;
+
+                _context.Devices.Update(device);
+                await _context.SaveChangesAsync();
+
+                return Ok(device);
             }
-
-            device.ModemId = null;
-
-            _context.Devices.Update(device);
-            await _context.SaveChangesAsync();
-
-            return Ok(device);
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
-        [HttpGet("companies")]
-        [SwaggerOperation(Summary = "Список компаний (для выпадающих списков)")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список компаний", typeof(List<object>))]
-        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
-        public async Task<IActionResult> GetCompaniesAsync()
-        {
-            var companies = await _context.Companies
-                .Select(c => new { c.Id, c.Name })
-                .ToListAsync();
-            return Ok(companies);
-        }
-
-        [HttpGet("devicemodels")]
+        [HttpGet("device-models")]
         [SwaggerOperation(Summary = "Список моделей аппаратов")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список моделей", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список моделей", typeof(List<ModelResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetDeviceModelsAsync()
         {
-            var models = await _context.DeviceModels
-                .Select(m => new { m.Id, m.Name })
-                .ToListAsync();
-            return Ok(models);
+            try
+            {
+                var models = await _context.DeviceModels
+                    .Include(dm => dm.DeviceType)
+                    .Select(dm => new ModelResponse
+                    {
+                        Id = dm.Id,
+                        Name = dm.Name,
+                        DeviceType = dm.DeviceType != null ? new DeviceTypeResponse
+                        {
+                            Id = dm.DeviceType.Id,
+                            Name = dm.DeviceType.Name,
+                            Description = dm.DeviceType.Description ?? "нет"
+                        } : new DeviceTypeResponse(),
+                        Description = dm.Description ?? "нет"
+                    })
+                    .ToListAsync();
+
+                return Ok(models);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpGet("modems")]
         [SwaggerOperation(Summary = "Список модемов")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список модемов", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список модемов", typeof(List<ModemResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetModemsAsync()
         {
-            var modems = await _context.Modems
-                .Select(m => new { m.Id, m.SerialNumber })
-                .ToListAsync();
-            return Ok(modems);
+            try
+            {
+                var modems = await _context.Modems
+                    .Select(m => new ModemResponse
+                    {
+                        Id = m.Id,
+                        Brand = m.Brand,
+                        SerialNumber = m.SerialNumber,
+                        Provider = m.Provider ?? "нет",
+                        Balance = m.Balance ?? 0
+                    })
+                    .ToListAsync();
+
+                return Ok(modems);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
-        [HttpGet("paymentmethods")]
+        [HttpGet("payment-methods")]
         [SwaggerOperation(Summary = "Способы оплаты")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список способов оплаты", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список способов оплаты", typeof(List<PaymentMethodResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetPaymentMethodsAsync()
         {
-            var paymentMethods = await _context.PaymentMethods
-                .Select(pm => new { pm.Id, pm.Name })
-                .ToListAsync();
-            return Ok(paymentMethods);
+            try
+            {
+                var paymentMethods = await _context.PaymentMethods
+                    .Select(pm => new PaymentMethodResponse
+                    {
+                        Id = pm.Id,
+                        Name = pm.Name
+                    })
+                    .ToListAsync();
+
+                return Ok(paymentMethods);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpGet("locations")]
         [SwaggerOperation(Summary = "Список локаций")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список локаций", typeof(List<object>))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список локаций", typeof(List<LocationResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetLocationsAsync()
         {
-            var locations = await _context.Locations
-                .Select(l => new { l.Id, l.PlaceDescription })
-                .ToListAsync();
-            return Ok(locations);
+            try
+            {
+                var locations = await _context.Locations
+                    .Select(l => new LocationResponse
+                    {
+                        Id = l.Id,
+                        InstallationAddress = l.InstallationAddress ?? "не задан",
+                        PlaceDescription = l.PlaceDescription ?? "не задан",
+                    })
+                    .ToListAsync();
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
+        }
+
+        [HttpGet("device-status")]
+        [SwaggerOperation(Summary = "Список статусов работы аппаратов")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список статусов работы аппаратов", typeof(List<DeviceStatusResponse>))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
+        public async Task<IActionResult> GetDeviceStatusesAsync()
+        {
+            try
+            {
+                var statuses = await _context.DeviceStatuses
+                    .Select(ds => new DeviceStatusResponse
+                    {
+                        Id = ds.Id,
+                        Name = ds.Name,
+                        ColorCode = ds.ColorCode ?? "не задан"
+                    })
+                    .ToListAsync();
+
+                return Ok(statuses);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
     }
 }

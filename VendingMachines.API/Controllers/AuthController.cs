@@ -11,7 +11,6 @@ using VendingMachines.Core.Models;
 using VendingMachines.Infrastructure.Data;
 using VendingMachines.Infrastructure.Services;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Threading.Tasks;
 
 namespace VendingMachines.API.Controllers
 {
@@ -43,25 +42,47 @@ namespace VendingMachines.API.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    var errorMessage = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .FirstOrDefault()?.ErrorMessage ?? "Ошибка валидации";
+                //if (!ModelState.IsValid)
+                //{
+                //    var errorMessage = ModelState.Values
+                //        .SelectMany(v => v.Errors)
+                //        .FirstOrDefault()?.ErrorMessage ?? "Ошибка валидации";
 
-                    return BadRequest(errorMessage);
+                //    return BadRequest(errorMessage);
+                //}
+
+                var role = await _context.Roles
+                        .FirstOrDefaultAsync(r => r.Name == "Пользователь");
+
+                if (role == null)
+                {
+                    return NotFound("Роль для регистрации пользователя не найдена");
                 }
+
+                int roleId = role.Id;
+
+                var company = await _context.Companies
+                        .OrderBy(c => EF.Functions.Random())
+                        .FirstOrDefaultAsync();
+
+                if (company == null)
+                {
+                    return NotFound("Компания для регистрации пользователя не найдена");
+                }
+
+                int companyId = company.Id;
 
                 var user = new User
                 {
+                    Id = await _context.Users.MaxAsync(u => u.Id) + 1,
                     LastName = request.LastName,
                     FirstName = request.FirstName,
                     MiddleName = request.MiddleName,
                     Email = request.Email,
                     Phone = request.Phone,
                     HashedPassword = PasswordHasher.HashPassword(request.Password),
-                    RoleId = request.RoleId,
-                    CompanyId = request.CompanyId,
+                    RoleId = roleId,
+                    CompanyId = companyId,
                     Language = request.Language
                 };
 
@@ -78,31 +99,29 @@ namespace VendingMachines.API.Controllers
                     return NotFound($"Пользователь с регистрационными данными {registeredUser?.Email} не найден");
                 }
 
-                return Ok(new RegisterResponse
+                return Ok(new UserResponse
                 {
-                    User = new UserResponse
+                    LastName = user.LastName,
+                    FirstName = user.FirstName,
+                    MiddleName = user.MiddleName ?? "не задан",
+                    Email = user.Email,
+                    Password = user.HashedPassword,
+                    Phone = user.Phone ?? "не задан",
+                    Language = user.Language ?? "не задан",
+                    Role = user.Role != null ? new RoleResponse
                     {
-                        LastName = user.LastName,
-                        FirstName = user.FirstName,
-                        MiddleName = user.MiddleName ?? "не задан",
-                        Email = user.Email,
-                        Password = user.HashedPassword,
-                        Phone = user.Phone ?? "не задан",
-                        Language = user.Language ?? "не задан",
-                        Role = new RoleResponse
-                        {
-                            Name = user?.Role != null ? user.Role.Name : "не задан",
-                            Description = user?.Role?.Description ?? "не задан"
-                        },
-                        Company = new CompanyResponse
-                        {
-                            Name = user?.Company != null ? user.Company.Name : "не задан",
-                            ContactEmail = user?.Company != null ? user?.Company.ContactEmail : "не задан",
-                            ContactPhone = user?.Company != null ? user?.Company.ContactPhone : "не задан",
-                            Address = user?.Company != null ? user.Company.Address : "не задан"
-                        }
-                    },
-                    Message = "Пользователь успешно зарегистрирован"
+                        Name = user.Role.Name ?? "не задан",
+                        Description = user.Role.Description ?? "не задан"
+                    } : new RoleResponse(),
+                    Company = user.Company != null ? new CompanyResponse
+                    {
+                        Id = user.Company.Id,
+                        Name = user.Company.Name ?? "не задан",
+                        ContactEmail = user.Company.ContactEmail ?? "не задан",
+                        ContactPhone = user.Company.ContactPhone ?? "не задан",
+                        Address = user.Company.Address ?? "не задан"
+                    } : new CompanyResponse(),
+                    Token = "При регистрации JWT-токен не выдается"
                 });
             }
             catch (Exception ex)
@@ -148,24 +167,25 @@ namespace VendingMachines.API.Controllers
                     Password = user.HashedPassword,
                     Phone = user.Phone ?? "не задан",
                     Language = user.Language ?? "не задан",
-                    Role = new RoleResponse
+                    Role = user.Role != null ? new RoleResponse
                     {
-                        Name = user?.Role != null ? user.Role.Name : "не задан",
-                        Description = user?.Role?.Description ?? "не задан"
-                    },
-                    Company = new CompanyResponse
+                        Name = user.Role.Name ?? "не задан",
+                        Description = user.Role.Description ?? "не задан"
+                    } : new RoleResponse(),
+                    Company = user?.Company != null ? new CompanyResponse
                     {
-                        Name = user?.Company != null ? user.Company.Name : "не задан",
-                        ContactEmail = user?.Company != null ? user?.Company.ContactEmail : "не задан",
-                        ContactPhone = user?.Company != null ? user?.Company.ContactPhone : "не задан",
-                        Address = user?.Company != null ? user.Company.Address : "не задан"
-                    },
+                        Id = user.Company.Id,
+                        Name = user.Company.Name ?? "не задан",
+                        ContactEmail = user.Company.ContactEmail ?? "не задан",
+                        ContactPhone = user.Company.ContactPhone ?? "не задан",
+                        Address = user.Company.Address ?? "не задан"
+                    } : new CompanyResponse(),
                     Token = !string.IsNullOrEmpty(token)
                         ? "JWT-токен хранится в Cookies на сервере. Пользователю он недоступен"
                         : "JWT-токена на сервере нет"
                 };
 
-                Response.Cookies.Append($"jwt_token_user{user?.Id}", token);
+                Response.Cookies.Append("jwt_token", token);
 
                 return Ok(userResponse);
             }
@@ -201,7 +221,7 @@ namespace VendingMachines.API.Controllers
 
                 var token = JwtTokenService.GenerateJwtToken(user, _configuration);
 
-                Response.Cookies.Append($"jwt_token_user{userId}", token);
+                Response.Cookies.Append("jwt_token", token);
 
                 return Ok("JWT-токен успешно обновлен");
             }
@@ -235,7 +255,7 @@ namespace VendingMachines.API.Controllers
                     return NotFound("Пользователь не найден");
                 }
 
-                Response.Cookies.Delete($"jwt_token_user{userId}");
+                Response.Cookies.Delete("jwt_token");
                 return Ok("Вы вышли из системы");
             }
             catch (Exception ex)
