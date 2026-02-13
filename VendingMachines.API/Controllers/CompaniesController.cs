@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using DocumentFormat.OpenXml.ExtendedProperties;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -118,7 +119,7 @@ namespace VendingMachines.API.Controllers
 
         [HttpPut("{id}")]
         [SwaggerOperation(Summary = "Обновление компании")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Компания успешно обновлена", typeof(Company))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Компания успешно обновлена", typeof(CompanyResponse))]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "ID в пути не совпадает с ID в теле")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Компания не найдена")]
@@ -139,7 +140,16 @@ namespace VendingMachines.API.Controllers
                 _context.Entry(existingCompany).CurrentValues.SetValues(request);
                 await _context.SaveChangesAsync();
 
-                return Ok(existingCompany);
+                var updatedCompany = new CompanyResponse
+                {
+                    Id = existingCompany.Id,
+                    Name = existingCompany.Name,
+                    ContactEmail = existingCompany.ContactEmail ?? "не задан",
+                    ContactPhone = existingCompany.ContactPhone ?? "не задан",
+                    Address = existingCompany.Address ?? "не задан"
+                };
+
+                return Ok(updatedCompany);
             }
             catch (Exception ex)
             {
