@@ -27,9 +27,6 @@ public partial class Event
     [Column("date_time")]
     public DateTime? DateTime { get; set; }
 
-    [Column("media_path")]
-    public string? MediaPath { get; set; }
-
     [ForeignKey("DeviceId")]
     [InverseProperty("Events")]
     [JsonIgnore]

@@ -1,13 +1,12 @@
-﻿namespace VendingMachines.DTOs.Events;
+﻿using VendingMachines.API.DTOs.Events.Enums;
 
-public class NotesRequest
+namespace VendingMachines.API.DTOs.Events
 {
-    public int Id { get; set; }
-    public string EventType { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string? PhotoUrl { get; set; }
-    public DateTime? EventDate { get; set; }
-    public DeviceRequest? Device { get; set; } = new();
-    
-    public int? DeviceId { get; set; }
+    public class NotesRequest
+    {
+        public int? DeviceId { get; set; }
+        public EventTypeEnum EventType { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public DateTime? EventDate { get; set; }
+    }
 }
