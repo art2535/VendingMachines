@@ -439,7 +439,7 @@ namespace VendingMachines.API.Controllers
 
         [HttpPatch("{id}/detach-modem")]
         [SwaggerOperation(Summary = "Отвязка модема от аппарата")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Модем отвязан", typeof(Device))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Модем отвязан", typeof(DeviceResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         [SwaggerResponse(StatusCodes.Status404NotFound, "Аппарат не найден")]
         public async Task<IActionResult> DetachModemAsync(
@@ -458,7 +458,69 @@ namespace VendingMachines.API.Controllers
                 _context.Devices.Update(device);
                 await _context.SaveChangesAsync();
 
-                return Ok(device);
+                var updated = await _context.Devices
+                    .AsNoTracking()
+                    .Include(d => d.DeviceModel)
+                        .ThenInclude(m => m.DeviceType)
+                    .Include(d => d.DeviceStatus)
+                    .Include(d => d.Company)
+                    .Include(d => d.Modem)
+                    .Include(d => d.Location)
+                    .Where(d => d.Id == id)
+                    .Select(d => new DeviceResponse
+                    {
+                        Id = d.Id,
+                        Model = d.DeviceModel != null ? new ModelResponse
+                        {
+                            Id = d.DeviceModel.Id,
+                            Name = d.DeviceModel.Name,
+                            Description = d.DeviceModel.Description ?? "",
+                            DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
+                            {
+                                Id = d.DeviceModel.DeviceType.Id,
+                                Name = d.DeviceModel.DeviceType.Name,
+                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                            } : new DeviceTypeResponse()
+                        } : new ModelResponse(),
+                        Location = d.Location != null ? new LocationResponse
+                        {
+                            Id = d.Location.Id,
+                            InstallationAddress = d.Location.InstallationAddress,
+                            PlaceDescription = d.Location.PlaceDescription
+                        } : new LocationResponse(),
+                        Modem = d.Modem != null ? new ModemResponse
+                        {
+                            Id = d.Modem.Id,
+                            Brand = d.Modem.Brand ?? "",
+                            SerialNumber = d.Modem.SerialNumber ?? "",
+                            Provider = d.Modem.Provider ?? "",
+                            Balance = d.Modem.Balance
+                        } : new ModemResponse(),
+                        DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
+                        {
+                            Id = d.DeviceStatus.Id,
+                            Name = d.DeviceStatus.Name,
+                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                        } : new DeviceStatusResponse(),
+                        Company = d.Company != null ? new CompanyResponse
+                        {
+                            Id = d.Company.Id,
+                            Name = d.Company.Name,
+                            ContactEmail = d.Company.ContactEmail ?? "не задан",
+                            ContactPhone = d.Company.ContactPhone ?? "не задан",
+                            Address = d.Company.Address ?? "не задан"
+                        } : new CompanyResponse(),
+                        InstallationDate = d.InstallationDate,
+                        LastServiceDate = d.LastServiceDate
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (updated == null)
+                {
+                    return NotFound($"Обновленный аппарат с ID = {id} не найден");
+                }
+
+                return Ok(updated);
             }
             catch (Exception ex)
             {
