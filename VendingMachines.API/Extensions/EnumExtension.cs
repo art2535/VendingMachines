@@ -1,4 +1,5 @@
 ﻿using VendingMachines.API.DTOs.Bookings.Enums;
+using VendingMachines.API.DTOs.Events.Enums;
 
 namespace VendingMachines.API.Extensions
 {
@@ -15,17 +16,6 @@ namespace VendingMachines.API.Extensions
             _ => status.ToString()
         };
 
-        public static BookingStatusEnum ToBookingStatusEnum(this string? dbValue) => dbValue switch
-        {
-            "Ожидает подтверждения" => BookingStatusEnum.Pending,
-            "Подтверждено" => BookingStatusEnum.Confirmed,
-            "Активно" => BookingStatusEnum.Active,
-            "Завершено" => BookingStatusEnum.Completed,
-            "Отменено" => BookingStatusEnum.Cancelled,
-            "Отклонено" => BookingStatusEnum.Rejected,
-            _ => BookingStatusEnum.Pending
-        };
-
         public static string ToRussianDb(this OwnershipTypeEnum type) => type switch
         {
             OwnershipTypeEnum.Rent => "Аренда",
@@ -36,14 +26,15 @@ namespace VendingMachines.API.Extensions
             _ => type.ToString()
         };
 
-        public static OwnershipTypeEnum ToOwnershipTypeEnum(this string dbValue) => dbValue switch
+        public static string ToRussianDb(this EventTypeEnum type) => type switch
         {
-            "Аренда" => OwnershipTypeEnum.Rent,
-            "Лизинг" => OwnershipTypeEnum.Lease,
-            "Выкуп" => OwnershipTypeEnum.Purchase,
-            "Тестовый период" => OwnershipTypeEnum.Trial,
-            "Прочее" => OwnershipTypeEnum.Other,
-            _ => OwnershipTypeEnum.Other
+            EventTypeEnum.Enabling => "Включение",
+            EventTypeEnum.Error => "Ошибка",
+            EventTypeEnum.Updating => "Обновление",
+            EventTypeEnum.Disabling => "Отключение",
+            EventTypeEnum.Rebooting => "Перезагрузка",
+            EventTypeEnum.Calibration => "Калибровка",
+            _ => type.ToString()
         };
     }
 }
