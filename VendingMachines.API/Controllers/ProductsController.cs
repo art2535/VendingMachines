@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VendingMachines.Infrastructure.Data;
 using Swashbuckle.AspNetCore.Annotations;
-using VendingMachines.Core.Models;
+using VendingMachines.API.DTOs;
+using VendingMachines.API.DTOs.Products;
+using VendingMachines.Infrastructure.Data;
 
 namespace VendingMachines.API.Controllers
 {
@@ -26,19 +27,36 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Получение списка товаров",
             Description = "Пагинируемый список всех товаров в системе с сортировкой по ID")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список товаров получен", typeof(List<Product>))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список товаров получен", typeof(List<ProductResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
-        public async Task<IActionResult> GetProductsAsync(
-            [FromQuery][SwaggerParameter(Description = "Количество товаров на странице (по умолчанию 10)")] int limit = 10,
-            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0)
+        public async Task<IActionResult> GetProductsAsync()
         {
-            var products = await _context.Products
-                .OrderBy(product => product.Id)
-                .Skip(offset)
-                .Take(limit)
-                .ToListAsync();
+            try
+            {
+                var products = await _context.Products
+                    .Include(p => p.Inventories)
+                    .Include(p => p.Sales)
+                    .OrderBy(p => p.Id)
+                    .Select(p => new ProductResponse
+                    {
+                        Name = p.Name,
+                        Description = p.Description ?? "нет",
+                        Price = p.Price,
+                        SalesPopularity = p.SalesPopularity ?? 0,
+                        CreatedAt = p.CreatedAt ?? DateTime.UtcNow,
+                    })
+                    .ToListAsync();
 
-            return Ok(products);
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
     }
 }

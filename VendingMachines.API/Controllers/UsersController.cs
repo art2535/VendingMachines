@@ -58,18 +58,19 @@ namespace VendingMachines.API.Controllers
                     Password = user.HashedPassword,
                     Phone = user.Phone ?? "не задан",
                     Language = user.Language ?? "не задан",
-                    Role = new RoleResponse
+                    Role = user.Role != null ? new RoleResponse
                     {
-                        Name = user?.Role != null ? user.Role.Name : "не задан",
-                        Description = user?.Role?.Description ?? "не задан"
-                    },
-                    Company = new CompanyResponse
+                        Name = user.Role.Name ?? "не задан",
+                        Description = user.Role.Description ?? "не задан"
+                    } : new RoleResponse(),
+                    Company = user.Company != null ? new CompanyResponse
                     {
-                        Name = user?.Company != null ? user.Company.Name : "не задан",
-                        ContactEmail = user?.Company != null ? user?.Company.ContactEmail : "не задан",
-                        ContactPhone = user?.Company != null ? user?.Company.ContactPhone : "не задан",
-                        Address = user?.Company != null ? user.Company.Address : "не задан"
-                    },
+                        Id = user.Company.Id,
+                        Name = user.Company.Name ?? "не задан",
+                        ContactEmail = user.Company.ContactEmail ?? "не задан",
+                        ContactPhone = user.Company.ContactPhone ?? "не задан",
+                        Address = user.Company.Address ?? "не задан"
+                    } : new CompanyResponse(),
                     Token = !string.IsNullOrEmpty(token)
                         ? "JWT-токен хранится в Cookies на сервере. Пользователю он недоступен"
                         : "JWT-токена на сервере нет"

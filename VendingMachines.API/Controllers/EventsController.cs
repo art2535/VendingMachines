@@ -35,8 +35,8 @@ namespace VendingMachines.API.Controllers
         [SwaggerResponse(StatusCodes.Status200OK, "Список событий получен", typeof(List<NotesResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetAllNotesAsync(
+            [FromQuery][SwaggerParameter(Description = "Фильтр по типу события")] EventTypeEnum eventType,
             [FromQuery][SwaggerParameter(Description = "Поиск по типу события, описанию, адресу, модели или компании")] string? search = null,
-            [FromQuery][SwaggerParameter(Description = "Фильтр по типу события")] EventTypeEnum eventType = EventTypeEnum.Enabling,
             [FromQuery][SwaggerParameter(Description = "Фильтр по дате события (вся дата)")] DateTime? date = null,
             [FromQuery][SwaggerParameter(Description = "Поле сортировки: 'date' или 'type' (по умолчанию 'date')")] string? sortBy = "date",
             [FromQuery][SwaggerParameter(Description = "Направление сортировки: 'asc' или 'desc' (по умолчанию 'desc')")] string? sortOrder = "desc")

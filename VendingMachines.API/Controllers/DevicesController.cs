@@ -57,12 +57,12 @@ namespace VendingMachines.API.Controllers
                         {
                             Id = d.DeviceModel.Id,
                             Name = d.DeviceModel.Name,
-                            Description = d.DeviceModel.Description ?? "",
+                            Description = d.DeviceModel.Description ?? "не задан",
                             DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
                             {
                                 Id = d.DeviceModel.DeviceType.Id,
                                 Name = d.DeviceModel.DeviceType.Name,
-                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                                Description = d.DeviceModel.DeviceType.Description ?? "не задан"
                             } : new DeviceTypeResponse()
                         } : new ModelResponse(),
                         Location = d.Location != null ? new LocationResponse
@@ -74,16 +74,16 @@ namespace VendingMachines.API.Controllers
                         Modem = d.Modem != null ? new ModemResponse
                         {
                             Id = d.Modem.Id,
-                            Brand = d.Modem.Brand ?? "",
-                            SerialNumber = d.Modem.SerialNumber ?? "",
-                            Provider = d.Modem.Provider ?? "",
+                            Brand = d.Modem.Brand ?? "не задан",
+                            SerialNumber = d.Modem.SerialNumber ?? "не задан",
+                            Provider = d.Modem.Provider ?? "не задан",
                             Balance = d.Modem.Balance
                         } : new ModemResponse(),
                         DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
                         {
                             Id = d.DeviceStatus.Id,
                             Name = d.DeviceStatus.Name,
-                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                            ColorCode = d.DeviceStatus.ColorCode ?? "не задан"
                         } : new DeviceStatusResponse(),
                         Company = d.Company != null ? new CompanyResponse
                         {
@@ -135,12 +135,12 @@ namespace VendingMachines.API.Controllers
                         {
                             Id = d.DeviceModel.Id,
                             Name = d.DeviceModel.Name,
-                            Description = d.DeviceModel.Description ?? "",
+                            Description = d.DeviceModel.Description ?? "не задан",
                             DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
                             {
                                 Id = d.DeviceModel.DeviceType.Id,
                                 Name = d.DeviceModel.DeviceType.Name,
-                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                                Description = d.DeviceModel.DeviceType.Description ?? "не задан"
                             } : new DeviceTypeResponse()
                         } : new ModelResponse(),
                         Location = d.Location != null ? new LocationResponse
@@ -152,16 +152,16 @@ namespace VendingMachines.API.Controllers
                         Modem = d.Modem != null ? new ModemResponse
                         {
                             Id = d.Modem.Id,
-                            Brand = d.Modem.Brand ?? "",
-                            SerialNumber = d.Modem.SerialNumber ?? "",
-                            Provider = d.Modem.Provider ?? "",
+                            Brand = d.Modem.Brand ?? "не задан",
+                            SerialNumber = d.Modem.SerialNumber ?? "не задан",
+                            Provider = d.Modem.Provider ?? "не задан",
                             Balance = d.Modem.Balance
                         } : new ModemResponse(),
                         DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
                         {
                             Id = d.DeviceStatus.Id,
                             Name = d.DeviceStatus.Name,
-                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                            ColorCode = d.DeviceStatus.ColorCode ?? "не задан"
                         } : new DeviceStatusResponse(),
                         Company = d.Company != null ? new CompanyResponse
                         {
@@ -242,12 +242,12 @@ namespace VendingMachines.API.Controllers
                         {
                             Id = d.DeviceModel.Id,
                             Name = d.DeviceModel.Name,
-                            Description = d.DeviceModel.Description ?? "",
+                            Description = d.DeviceModel.Description ?? "не задан",
                             DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
                             {
                                 Id = d.DeviceModel.DeviceType.Id,
                                 Name = d.DeviceModel.DeviceType.Name,
-                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                                Description = d.DeviceModel.DeviceType.Description ?? "не задан"
                             } : new DeviceTypeResponse()
                         } : new ModelResponse(),
                         Location = d.Location != null ? new LocationResponse
@@ -259,16 +259,16 @@ namespace VendingMachines.API.Controllers
                         Modem = d.Modem != null ? new ModemResponse
                         {
                             Id = d.Modem.Id,
-                            Brand = d.Modem.Brand ?? "",
-                            SerialNumber = d.Modem.SerialNumber ?? "",
-                            Provider = d.Modem.Provider ?? "",
+                            Brand = d.Modem.Brand ?? "не задан",
+                            SerialNumber = d.Modem.SerialNumber ?? "не задан",
+                            Provider = d.Modem.Provider ?? "не задан",
                             Balance = d.Modem.Balance
                         } : new ModemResponse(),
                         DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
                         {
                             Id = d.DeviceStatus.Id,
                             Name = d.DeviceStatus.Name,
-                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                            ColorCode = d.DeviceStatus.ColorCode ?? "не задан"
                         } : new DeviceStatusResponse(),
                         Company = d.Company != null ? new CompanyResponse
                         {
@@ -348,12 +348,12 @@ namespace VendingMachines.API.Controllers
                         {
                             Id = d.DeviceModel.Id,
                             Name = d.DeviceModel.Name,
-                            Description = d.DeviceModel.Description ?? "",
+                            Description = d.DeviceModel.Description ?? "не задан",
                             DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
                             {
                                 Id = d.DeviceModel.DeviceType.Id,
                                 Name = d.DeviceModel.DeviceType.Name,
-                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                                Description = d.DeviceModel.DeviceType.Description ?? "не задан"
                             } : new DeviceTypeResponse()
                         } : new ModelResponse(),
                         Location = d.Location != null ? new LocationResponse
@@ -365,16 +365,16 @@ namespace VendingMachines.API.Controllers
                         Modem = d.Modem != null ? new ModemResponse
                         {
                             Id = d.Modem.Id,
-                            Brand = d.Modem.Brand ?? "",
-                            SerialNumber = d.Modem.SerialNumber ?? "",
-                            Provider = d.Modem.Provider ?? "",
+                            Brand = d.Modem.Brand ?? "не задан",
+                            SerialNumber = d.Modem.SerialNumber ?? "не задан",
+                            Provider = d.Modem.Provider ?? "не задан",
                             Balance = d.Modem.Balance
                         } : new ModemResponse(),
                         DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
                         {
                             Id = d.DeviceStatus.Id,
                             Name = d.DeviceStatus.Name,
-                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                            ColorCode = d.DeviceStatus.ColorCode ?? "не задан"
                         } : new DeviceStatusResponse(),
                         Company = d.Company != null ? new CompanyResponse
                         {
@@ -474,12 +474,12 @@ namespace VendingMachines.API.Controllers
                         {
                             Id = d.DeviceModel.Id,
                             Name = d.DeviceModel.Name,
-                            Description = d.DeviceModel.Description ?? "",
+                            Description = d.DeviceModel.Description ?? "не задан",
                             DeviceType = d.DeviceModel.DeviceType != null ? new DeviceTypeResponse
                             {
                                 Id = d.DeviceModel.DeviceType.Id,
                                 Name = d.DeviceModel.DeviceType.Name,
-                                Description = d.DeviceModel.DeviceType.Description ?? ""
+                                Description = d.DeviceModel.DeviceType.Description ?? "не задан"
                             } : new DeviceTypeResponse()
                         } : new ModelResponse(),
                         Location = d.Location != null ? new LocationResponse
@@ -491,16 +491,16 @@ namespace VendingMachines.API.Controllers
                         Modem = d.Modem != null ? new ModemResponse
                         {
                             Id = d.Modem.Id,
-                            Brand = d.Modem.Brand ?? "",
-                            SerialNumber = d.Modem.SerialNumber ?? "",
-                            Provider = d.Modem.Provider ?? "",
+                            Brand = d.Modem.Brand ?? "не задан",
+                            SerialNumber = d.Modem.SerialNumber ?? "не задан",
+                            Provider = d.Modem.Provider ?? "не задан",
                             Balance = d.Modem.Balance
                         } : new ModemResponse(),
                         DeviceStatus = d.DeviceStatus != null ? new DeviceStatusResponse
                         {
                             Id = d.DeviceStatus.Id,
                             Name = d.DeviceStatus.Name,
-                            ColorCode = d.DeviceStatus.ColorCode ?? ""
+                            ColorCode = d.DeviceStatus.ColorCode ?? "не задан"
                         } : new DeviceStatusResponse(),
                         Company = d.Company != null ? new CompanyResponse
                         {

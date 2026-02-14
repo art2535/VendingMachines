@@ -1,10 +1,13 @@
-﻿using System.Globalization;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VendingMachines.API.DTOs.Monitoring;
-using VendingMachines.Infrastructure.Data;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Globalization;
+using VendingMachines.API.DTOs;
+using VendingMachines.API.DTOs.Monitoring;
+using VendingMachines.API.DTOs.Monitoring.Enums;
+using VendingMachines.API.Extensions;
+using VendingMachines.Infrastructure.Data;
 
 namespace VendingMachines.API.Controllers
 {
@@ -27,281 +30,337 @@ namespace VendingMachines.API.Controllers
         [SwaggerOperation(
             Summary = "Сетевой статус аппаратов",
             Description = "Фильтрация по статусу и типу подключения + статистика эффективности и выручки")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Сетевой статус получен", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Сетевой статус получен", typeof(NetworkStatusResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetNetworkStatusAsync(
-            [FromQuery][SwaggerParameter(Description = "Фильтр по статусу аппарата")] string status = "",
-            [FromQuery][SwaggerParameter(Description = "Фильтр по типу подключения")] string connectionType = "")
+            [FromQuery][SwaggerParameter(Description = "Фильтр по статусу аппарата")] DeviceStatusesEnum status)
         {
-            var query = _context.Devices
-                .Include(d => d.DeviceStatus)
-                .Include(d => d.Modem)
-                .Include(d => d.DeviceModel)
-                    .ThenInclude(dm => dm.DeviceType)
-                .AsQueryable();
-
-            if (!string.IsNullOrEmpty(status))
+            try
             {
-                query = query.Where(d => d.DeviceStatus != null &&
-                                         d.DeviceStatus.Name.Contains(status, StringComparison.OrdinalIgnoreCase));
+                var query = _context.Devices
+                    .Include(d => d.DeviceStatus)
+                    .Include(d => d.Modem)
+                    .Include(d => d.DeviceModel)
+                    .AsQueryable();
+
+                if (!string.IsNullOrEmpty(status.ToRussianDb()))
+                {
+                    query = query
+                        .Where(d => d.DeviceStatus != null &&
+                            d.DeviceStatus.Name.Contains(status.ToRussianDb()));
+                }
+
+                var devices = await query.OrderBy(d => d.Id).ToListAsync();
+
+                var activeCount = devices.Count(d =>
+                    d.DeviceStatus != null &&
+                    d.DeviceStatus.Name.Equals("Активен", StringComparison.OrdinalIgnoreCase));
+
+                var inactiveCount = devices.Count - activeCount;
+
+                var efficiency = devices.Count != 0 ? (double)activeCount / devices.Count * 100 : 0;
+
+                var money = await _context.Sales
+                    .Where(s => s.DeviceId.HasValue &&
+                                devices
+                                    .Select(d => d.Id)
+                                    .Contains(s.DeviceId.Value))
+                    .Join(_context.Products, s => s.ProductId, p => p.Id, (s, p) => p.Price)
+                    .SumAsync();
+
+                return Ok(new NetworkStatusResponse
+                {
+                    Active = activeCount,
+                    Inactive = inactiveCount,
+                    Efficiency = Math.Round(efficiency, 2),
+                    Devices = devices,
+                    TotalMoney = money
+                });
             }
-
-            if (!string.IsNullOrEmpty(connectionType))
+            catch (Exception ex)
             {
-                query = query.Where(d => d.DeviceModel != null &&
-                                         d.DeviceModel.DeviceType != null &&
-                                         d.DeviceModel.DeviceType.Name.Contains(connectionType,
-                                             StringComparison.OrdinalIgnoreCase));
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
             }
-
-            var devices = await query.OrderBy(d => d.Id).ToListAsync();
-
-            var activeCount = devices.Count(d =>
-                d.DeviceStatus != null &&
-                d.DeviceStatus.Name.Equals("Активен", StringComparison.OrdinalIgnoreCase));
-
-            var inactiveCount = devices.Count - activeCount;
-
-            var efficiency = devices.Count != 0 ? (double)activeCount / devices.Count * 100 : 0;
-
-            var money = await _context.Sales
-                .Where(s => s.DeviceId.HasValue &&
-                            devices
-                                .Select(d => d.Id)
-                                .Contains(s.DeviceId.Value))
-                .Join(_context.Products, s => s.ProductId, p => p.Id, (s, p) => p.Price)
-                .SumAsync();
-
-            return Ok(new
-            {
-                Active = activeCount,
-                Inactive = inactiveCount,
-                Efficiency = Math.Round(efficiency, 2),
-                Devices = devices,
-                TotalMoney = money
-            });
         }
 
         [HttpGet("summary")]
         [SwaggerOperation(
             Summary = "Сводка за сегодня/вчера",
             Description = "Выручка, инкассация, обслуживание, деньги в ТА и т.д.")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Сводка получена", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Сводка получена", typeof(SummaryResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetSummaryAsync(
             [FromQuery][SwaggerParameter(Description = "Дата для сводки (по умолчанию сегодня)")] DateTime? date = null)
         {
-            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
-            var yesterday = targetDate.AddDays(-1);
-
-            var sales = await _context.Sales
-                .Include(s => s.Product)
-                .Where(s => s.SaleDateTime == targetDate || s.SaleDateTime == yesterday)
-                .ToListAsync();
-
-            var revenueToday = sales
-                .Where(s => s.SaleDateTime == targetDate && s.Product != null)
-                .Sum(s => s.Product.Price);
-            var revenueYesterday = sales
-                .Where(s => s.SaleDateTime == yesterday && s.Product != null)
-                .Sum(s => s.Product.Price);
-
-            var collectedToday = revenueToday;
-            var collectedYesterday = revenueYesterday;
-
-            var services = await _context.Services
-                .Where(s => s.ServiceDate == DateOnly.FromDateTime(targetDate)
-                || s.ServiceDate == DateOnly.FromDateTime(yesterday))
-                .ToListAsync();
-
-            var servicedToday = services.Count(s => s.ServiceDate == DateOnly.FromDateTime(targetDate));
-            var servicedYesterday = services.Count(s => s.ServiceDate == DateOnly.FromDateTime(yesterday));
-
-            var inventory = await _context.Inventories
-                .Include(i => i.Product)
-                .ToListAsync();
-
-            var moneyInTA = inventory.Sum(i => i.Quantity * i.Product.Price);
-            var changeInTA = inventory.Sum(i => i.Quantity * i.Product.Price * 0.1m);
-
-            return Ok(new
+            try
             {
-                MoneyInTA = moneyInTA,
-                ChangeInTA = changeInTA,
-                RevenueToday = revenueToday,
-                RevenueYesterday = revenueYesterday,
-                CollectedToday = collectedToday,
-                CollectedYesterday = collectedYesterday,
-                ServicedToday = servicedToday,
-                ServicedYesterday = servicedYesterday
-            });
+                var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+                var yesterday = targetDate.AddDays(-1);
+
+                var sales = await _context.Sales
+                    .Include(s => s.Product)
+                    .Where(s => s.SaleDateTime == targetDate || s.SaleDateTime == yesterday)
+                    .ToListAsync();
+
+                var revenueToday = sales
+                    .Where(s => s.SaleDateTime == targetDate && s.Product != null)
+                    .Sum(s => s?.Product?.Price);
+                var revenueYesterday = sales
+                    .Where(s => s.SaleDateTime == yesterday && s.Product != null)
+                    .Sum(s => s?.Product?.Price);
+
+                var collectedToday = revenueToday;
+                var collectedYesterday = revenueYesterday;
+
+                var services = await _context.Services
+                    .Where(s => s.ServiceDate == DateOnly.FromDateTime(targetDate)
+                        || s.ServiceDate == DateOnly.FromDateTime(yesterday))
+                    .ToListAsync();
+
+                var servicedToday = services.Count(s => s.ServiceDate == DateOnly.FromDateTime(targetDate));
+                var servicedYesterday = services.Count(s => s.ServiceDate == DateOnly.FromDateTime(yesterday));
+
+                var inventory = await _context.Inventories
+                    .Include(i => i.Product)
+                    .ToListAsync();
+
+                var moneyInTA = inventory.Sum(i => i.Quantity * i?.Product?.Price);
+                var changeInTA = inventory.Sum(i => i.Quantity * i?.Product?.Price * 0.1m);
+
+                return Ok(new SummaryResponse
+                {
+                    MoneyInTA = moneyInTA ?? 0,
+                    ChangeInTA = changeInTA ?? 0,
+                    RevenueToday = revenueToday ?? 0,
+                    RevenueYesterday = revenueYesterday ?? 0,
+                    CollectedToday = collectedToday ?? 0,
+                    CollectedYesterday = collectedYesterday ?? 0,
+                    ServicedToday = servicedToday,
+                    ServicedYesterday = servicedYesterday
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpGet("sales-trend")]
         [SwaggerOperation(
             Summary = "Тренд продаж за период",
             Description = "Можно получить по сумме или по количеству продаж")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Тренд продаж получен", typeof(List<SaleTrend>))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Тренд продаж получен", typeof(List<SalesTrendResponse>))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetSalesTrendAsync(
             [FromQuery][SwaggerParameter(Description = "Дата начала периода")] DateTime? startDate,
             [FromQuery][SwaggerParameter(Description = "Дата окончания периода")] DateTime? endDate,
             [FromQuery][SwaggerParameter(Description = "Группировка по сумме (true) или количеству (false)")] bool byAmount = true)
         {
-            var start = DateTime.SpecifyKind(startDate?.Date ?? DateTime.UtcNow.Date.AddDays(-9), DateTimeKind.Utc);
-            var end = DateTime.SpecifyKind(endDate?.Date ?? DateTime.UtcNow.Date, DateTimeKind.Utc);
+            try
+            {
+                var start = DateTime.SpecifyKind(startDate?.Date ?? DateTime.UtcNow.Date.AddDays(-9), DateTimeKind.Utc);
+                var end = DateTime.SpecifyKind(endDate?.Date ?? DateTime.UtcNow.Date, DateTimeKind.Utc);
 
-            var query = _context.Sales
-                .Include(s => s.Product)
-                .Where(s => s.SaleDateTime >= start && s.SaleDateTime <= end)
-                .GroupBy(s => s.SaleDateTime)
-                .OrderBy(g => g.Key);
+                var query = _context.Sales
+                    .Include(s => s.Product)
+                    .Where(s => s.SaleDateTime >= start && s.SaleDateTime <= end)
+                    .GroupBy(s => s.SaleDateTime)
+                    .OrderBy(g => g.Key);
 
-            var result = byAmount
-                ? await query.Select(g => new SaleTrend
+                var result = byAmount
+                    ? await query.Select(g => new SalesTrendResponse
+                    {
+                        Date = g.Key.ToString(),
+                        Value = g.Sum(s => s.Product != null ? s.Product.Price : 0)
+                    }).ToListAsync()
+                    : await query.Select(g => new SalesTrendResponse
+                    {
+                        Date = g.Key.ToString(),
+                        Value = g.Count()
+                    }).ToListAsync();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
                 {
-                    Date = g.Key.ToString(),
-                    Value = g.Sum(s => s.Product != null ? s.Product.Price : 0)
-                }).ToListAsync()
-                : await query.Select(g => new SaleTrend
-                {
-                    Date = g.Key.ToString(),
-                    Value = g.Count()
-                }).ToListAsync();
-
-            return Ok(result);
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
 
         [HttpGet("notifications")]
         [SwaggerOperation(Summary = "Уведомления системы")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список уведомлений", typeof(object))]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список уведомлений", typeof(NotificationResponse))]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetNotificationsAsync(
             [FromQuery][SwaggerParameter(Description = "ID аппарата для фильтрации")] int? deviceId,
-            [FromQuery][SwaggerParameter(Description = "ID приоритета для фильтрации")] int? priorityId,
-            [FromQuery][SwaggerParameter(Description = "Количество уведомлений (по умолчанию 10)")] int limit = 10,
-            [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0)
+            [FromQuery][SwaggerParameter(Description = "ID приоритета для фильтрации")] int? priorityId)
         {
-            var query = _context.Notifications
-                .Include(not => not.Device)
-                .Include(not => not.User)
-                .AsQueryable();
-
-            if (deviceId.HasValue)
+            try
             {
-                query = query.Where(not => not.DeviceId == deviceId.Value);
-            }
+                var query = _context.Notifications
+                    .Include(not => not.Device)
+                    .Include(not => not.User)
+                    .AsQueryable();
 
-            if (priorityId.HasValue)
-            {
-                query = query.Where(not => not.Priority == priorityId.Value);
-            }
-
-            var notifications = await query
-                .OrderByDescending(not => not.DateTime)
-                .Skip(offset)
-                .Take(limit)
-                .Select(not => new
+                if (deviceId.HasValue)
                 {
-                    not.Id,
-                    not.DeviceId,
-                    not.UserId,
-                    not.Type,
-                    not.Message,
-                    not.Priority,
-                    not.DateTime,
-                    not.Confirmed
-                })
-                .ToListAsync();
+                    query = query.Where(not => not.DeviceId == deviceId.Value);
+                }
 
-            return Ok(notifications);
+                if (priorityId.HasValue)
+                {
+                    query = query.Where(not => not.Priority == priorityId.Value);
+                }
+
+                var notifications = await query
+                    .OrderByDescending(not => not.DateTime)
+                    .Select(not => new NotificationResponse
+                    {
+                        Id = not.Id,
+                        DeviceId = not.DeviceId,
+                        UserId = not.UserId,
+                        Type = not.Type,
+                        Message = not.Message,
+                        Priority = not.Priority,
+                        DateTime = not.DateTime,
+                        Confirmed = not.Confirmed
+                    })
+                    .ToListAsync();
+
+                return Ok(notifications);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
         
         [HttpGet("maintenance-events")]
         [SwaggerOperation(Summary = "События для календаря обслуживания")]
-        [SwaggerResponse(StatusCodes.Status200OK, "Список событий календаря")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Список событий календаря", typeof(MaintenanceEventResponse))]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Требуется авторизация")]
         public async Task<IActionResult> GetMaintenanceEvents(
-            [FromQuery] DateTime? month = null,
-            [FromQuery] int? deviceId = null)
+            [FromQuery][SwaggerParameter(Description = "Количество месяцев между плановыми обслуживаниями. " +
+                "Используется для расчёта следующей даты ТО от последней даты обслуживания или установки.")] int serviceIntervalMonth = 6,
+            [FromQuery][SwaggerParameter(Description = "Дата, для месяца которой нужно получить события обслуживания. " +
+                "Если не указана — берётся текущий месяц.")] DateTime? date = null,
+            [FromQuery][SwaggerParameter(Description = "ID конкретного аппарата, для которого нужно получить события. " +
+                "Если не указан — возвращаются события для всех аппаратов.")] int? deviceId = null)
         {
-            var targetMonth = month?.Date ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var startOfMonth = new DateTime(targetMonth.Year, targetMonth.Month, 1);
-            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-
-            var query = _context.Devices
-                .Include(d => d.DeviceModel)
-                .Include(d => d.Location)
-                .Include(d => d.Company)
-                .AsQueryable();
-
-            if (deviceId.HasValue)
-                query = query.Where(d => d.Id == deviceId.Value);
-
-            var devices = await query.ToListAsync();
-
-            var events = new List<MaintenanceEventDto>();
-            var today = DateTime.Today;
-
-            const int defaultServiceIntervalMonths = 6;
-
-            foreach (var device in devices)
+            try
             {
-                DateTime? nextServiceDate = null;
-                string eventType = "Плановое обслуживание";
+                var targetMonth = date?.Date ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                var startOfMonth = new DateTime(targetMonth.Year, targetMonth.Month, 1);
+                var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
 
-                if (device.LastServiceDate.HasValue)
+                var query = _context.Devices
+                    .Include(d => d.DeviceModel)
+                    .Include(d => d.Location)
+                    .Include(d => d.Company)
+                    .AsQueryable();
+
+                if (deviceId.HasValue)
                 {
-                    nextServiceDate = device.LastServiceDate.Value
-                        .ToDateTime(TimeOnly.MinValue)
-                        .AddMonths(defaultServiceIntervalMonths);
+                    query = query.Where(d => d.Id == deviceId.Value);
                 }
-                else if (device.InstallationDate != default)
+
+                var startNext = startOfMonth.AddMonths(-serviceIntervalMonth);
+                var endNext = endOfMonth.AddMonths(-serviceIntervalMonth);
+
+                var startNextDateOnly = DateOnly.FromDateTime(startNext);
+                var endNextDateOnly = DateOnly.FromDateTime(endNext);
+
+                query = query.Where(d =>
+                    (d.LastServiceDate.HasValue && d.LastServiceDate.Value >= startNextDateOnly &&
+                        d.LastServiceDate.Value <= endNextDateOnly) ||
+
+                    (!d.LastServiceDate.HasValue && d.InstallationDate != default &&
+                        d.InstallationDate >= startNextDateOnly && d.InstallationDate <= endNextDateOnly)
+                );
+
+                var devices = await query.ToListAsync();
+
+                var events = new List<MaintenanceEventDto>();
+                var today = DateTime.Today;
+
+                foreach (var device in devices)
                 {
-                    nextServiceDate = device.InstallationDate
-                        .ToDateTime(TimeOnly.MinValue)
-                        .AddMonths(defaultServiceIntervalMonths);
-                }
+                    DateTime? nextServiceDate = null;
+                    string eventType = "Плановое обслуживание";
 
-                if (nextServiceDate.HasValue && 
-                    nextServiceDate.Value.Date >= startOfMonth && 
-                    nextServiceDate.Value.Date <= endOfMonth)
-                {
-                    var daysUntilEvent = (nextServiceDate.Value.Date - today).Days;
-
-                    string backgroundColor = "#4CAF50";
-                    string textColor = "white";
-
-                    if (daysUntilEvent < 0)
+                    if (device.LastServiceDate.HasValue)
                     {
-                        backgroundColor = "#F44336";
+                        nextServiceDate = device.LastServiceDate.Value
+                            .ToDateTime(TimeOnly.MinValue)
+                            .AddMonths(serviceIntervalMonth);
                     }
-                    else if (daysUntilEvent < 5)
+                    else if (device.InstallationDate != default)
                     {
-                        backgroundColor = "#FF9800";
+                        nextServiceDate = device.InstallationDate
+                            .ToDateTime(TimeOnly.MinValue)
+                            .AddMonths(serviceIntervalMonth);
                     }
 
-                    events.Add(new MaintenanceEventDto
+                    if (nextServiceDate.HasValue && nextServiceDate.Value.Date >= startOfMonth &&
+                        nextServiceDate.Value.Date <= endOfMonth)
                     {
-                        Date = nextServiceDate.Value.Date,
-                        DeviceId = device.Id,
-                        SerialNumber = $"ТА-{device.Id}",
-                        Model = device.DeviceModel?.Name ?? "Неизвестная модель",
-                        Address = device.Location != null 
-                            ? $"{device.Location.InstallationAddress}" 
-                            : "Адрес не указан",
-                        Franchisee = device.Company?.Name ?? "Не указан",
-                        Type = eventType,
-                        BackgroundColor = backgroundColor,
-                        TextColor = textColor
-                    });
+                        var daysUntilEvent = (nextServiceDate.Value.Date - today).Days;
+
+                        string backgroundColor = "#4CAF50";
+                        string textColor = "white";
+
+                        if (daysUntilEvent < 0)
+                            backgroundColor = "#F44336";
+                        else if (daysUntilEvent < 5)
+                            backgroundColor = "#FF9800";
+
+                        events.Add(new MaintenanceEventDto
+                        {
+                            Date = nextServiceDate.Value.Date,
+                            DeviceId = device.Id,
+                            SerialNumber = $"ТА-{device.Id}",
+                            Model = device.DeviceModel?.Name ?? "Неизвестная модель",
+                            Address = device.Location != null
+                                ? $"{device.Location.InstallationAddress}"
+                                : "Адрес не указан",
+                            Franchisee = device.Company?.Name ?? "Не указан",
+                            Type = eventType,
+                            BackgroundColor = backgroundColor,
+                            TextColor = textColor
+                        });
+                    }
                 }
+
+                return Ok(new MaintenanceEventResponse
+                {
+                    Month = targetMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU")),
+                    Events = events.OrderBy(e => e.Date).ToList()
+                });
             }
-
-            return Ok(new
+            catch (Exception ex)
             {
-                Month = targetMonth.ToString("MMMM yyyy", new CultureInfo("ru-RU")),
-                Events = events.OrderBy(e => e.Date).ToList()
-            });
+                return StatusCode(500, new ErrorResponse
+                {
+                    StatusCode = 500,
+                    Message = ex.Message,
+                });
+            }
         }
     }
 }
