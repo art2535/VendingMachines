@@ -2,6 +2,7 @@
 using Swashbuckle.AspNetCore.SwaggerGen;
 using VendingMachines.API.DTOs.Bookings.Enums;
 using VendingMachines.API.DTOs.Events.Enums;
+using VendingMachines.API.DTOs.Monitoring.Enums;
 
 namespace VendingMachines.API.Filters
 {
@@ -42,6 +43,20 @@ namespace VendingMachines.API.Filters
                 lines.Add("3 — Отключение");
                 lines.Add("4 — Перезагрузка");
                 lines.Add("5 — Калибровка");
+            }
+            else if (context.Type == typeof(DeviceStatusesEnum))
+            {
+                lines.Add("<strong>Значения:</strong>");
+                lines.Add("0 — Активен");
+                lines.Add("1 — Неактивен");
+                lines.Add("2 — На обслуживании");
+                lines.Add("3 — Списан");
+                lines.Add("4 — Ожидает");
+                lines.Add("5 — Ошибка");
+                lines.Add("6 — Онлайн");
+                lines.Add("7 — Оффлайн");
+                lines.Add("8 — Тестирование");
+                lines.Add("9 — Утилизирован");
             }
 
             if (lines.Count != 0)

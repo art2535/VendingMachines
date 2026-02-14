@@ -1,5 +1,6 @@
 ﻿using VendingMachines.API.DTOs.Bookings.Enums;
 using VendingMachines.API.DTOs.Events.Enums;
+using VendingMachines.API.DTOs.Monitoring.Enums;
 
 namespace VendingMachines.API.Extensions
 {
@@ -35,6 +36,21 @@ namespace VendingMachines.API.Extensions
             EventTypeEnum.Rebooting => "Перезагрузка",
             EventTypeEnum.Calibration => "Калибровка",
             _ => type.ToString()
+        };
+
+        public static string ToRussianDb(this DeviceStatusesEnum status) => status switch
+        {
+            DeviceStatusesEnum.Active => "Активен",
+            DeviceStatusesEnum.Inactive => "Неактивен",
+            DeviceStatusesEnum.InService => "На обслуживании",
+            DeviceStatusesEnum.Written => "Списан",
+            DeviceStatusesEnum.OffAwaiting => "Ожидает",
+            DeviceStatusesEnum.Error => "Ошибка",
+            DeviceStatusesEnum.Online => "Онлайн",
+            DeviceStatusesEnum.Offline => "Оффлайн",
+            DeviceStatusesEnum.Testing => "Тестирование",
+            DeviceStatusesEnum.DisposedOf => "Утилизирован",
+            _ => status.ToString()
         };
     }
 }
