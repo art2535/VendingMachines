@@ -15,6 +15,8 @@
             set => _modemId = value;
         }
 
+        public string? Modem { get; set; } = string.Empty;
+
         public string Address { get; set; }
         public string Place { get; set; }
         public DateOnly InstallationDate { get; set; }

@@ -60,6 +60,7 @@ namespace VendingMachines.API.Controllers
                             Model = type.Name,
                             Company = company != null ? company.Name : "—",
                             ModemId = modem != null ? modem.Id : 0,
+                            Modem = modem != null ? modem.Brand : "-",
                             Address = location != null ? location.InstallationAddress : "—",
                             InstallationDate = device.InstallationDate
                         };
