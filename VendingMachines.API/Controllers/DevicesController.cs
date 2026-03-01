@@ -34,9 +34,14 @@ namespace VendingMachines.API.Controllers
             [FromQuery][SwaggerParameter(Description = "Смещение для пагинации (по умолчанию 0)")] int offset = 0,
             [FromQuery][SwaggerParameter(Description = "Фильтр поиска по названию модели, типа или компании")] string nameFilter = "")
         {
+
             var query = from device in _context.Devices
-                        join model in _context.DeviceModels on device.DeviceModelId equals model.Id
-                        join type in _context.DeviceTypes on model.DeviceTypeId equals type.Id
+                        join model in _context.DeviceModels
+                            on device.DeviceModelId equals model.Id into modelGroup
+                        from model in modelGroup.DefaultIfEmpty()
+                        join type in _context.DeviceTypes
+                            on model != null ? model.DeviceTypeId : null equals type.Id into typeGroup
+                        from type in typeGroup.DefaultIfEmpty()
                         join company in _context.Companies on device.CompanyId equals company.Id into compJoin
                         from company in compJoin.DefaultIfEmpty()
                         join modem in _context.Modems on device.ModemId equals modem.Id into modemJoin

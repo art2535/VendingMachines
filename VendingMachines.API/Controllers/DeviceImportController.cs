@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using ClosedXML.Excel;
+using CsvHelper;
+using CsvHelper.Configuration;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
-using VendingMachines.Core.Models;
-using VendingMachines.Infrastructure.Data;
-using ClosedXML.Excel;
-using CsvHelper;
 using System.Globalization;
 using VendingMachines.API.DTOs.DeviceImport;
+using VendingMachines.Core.Models;
+using VendingMachines.Infrastructure.Data;
 
 namespace VendingMachines.API.Controllers;
 
@@ -40,10 +41,7 @@ public class DeviceImportController : ControllerBase
             return BadRequest(new ImportResult
             {
                 Success = false,
-                Errors = new()
-                {
-                    "Файл не загружен."
-                }
+                Errors = ["Файл не загружен."]
             });
         }
 
@@ -53,10 +51,7 @@ public class DeviceImportController : ControllerBase
             return BadRequest(new ImportResult
             {
                 Success = false,
-                Errors = new()
-                {
-                    "Поддерживаются только .xlsx и .csv"
-                }
+                Errors = ["Поддерживаются только .xlsx и .csv"]
             });
         }
 
@@ -72,8 +67,8 @@ public class DeviceImportController : ControllerBase
                 using var workbook = new XLWorkbook(stream);
                 var worksheet = workbook.Worksheet(1);
                 var rows = worksheet.RowsUsed().Skip(1);
-
                 int rowNum = 2;
+
                 foreach (var row in rows)
                 {
                     try
@@ -81,16 +76,24 @@ public class DeviceImportController : ControllerBase
                         records.Add(new DeviceImportDto
                         {
                             ModelName = row.Cell(1).GetValue<string>()?.Trim(),
-                            CompanyName = row.Cell(2).GetValue<string>()?.Trim(),
-                            Address = row.Cell(3).GetValue<string>()?.Trim(),
-                            InstallationDateStr = row.Cell(4).GetValue<string>()?.Trim(),
-                            StatusName = row.Cell(5).GetValue<string>()?.Trim(),
-                            ModemSerial = row.Cell(6).GetValue<string>()?.Trim()
+                            ModelDescription = row.Cell(2).GetValue<string>()?.Trim(),
+                            DeviceTypeName = row.Cell(3).GetValue<string>()?.Trim(),
+                            DeviceTypeDescription = row.Cell(4).GetValue<string>()?.Trim(),
+                            CompanyName = row.Cell(5).GetValue<string>()?.Trim(),
+                            CompanyContactEmail = row.Cell(6).GetValue<string>()?.Trim(),
+                            CompanyContactPhone = row.Cell(7).GetValue<string>()?.Trim(),
+                            CompanyAddress = row.Cell(8).GetValue<string>()?.Trim(),
+                            Address = row.Cell(9).GetValue<string>()?.Trim(),
+                            PlaceDescription = row.Cell(10).GetValue<string>()?.Trim(),
+                            InstallationDate = row.Cell(11).GetValue<string>()?.Trim(),
+                            LastServiceDate = row.Cell(12).GetValue<string>()?.Trim(),
+                            StatusName = row.Cell(13).GetValue<string>()?.Trim(),
+                            ModemSerial = row.Cell(14).GetValue<string>()?.Trim(),
                         });
                     }
                     catch (Exception ex)
                     {
-                        errors.Add($"Строка {rowNum}: Некорректные данные — {ex.Message}");
+                        errors.Add($"Строка {rowNum}: ошибка чтения — {ex.Message}");
                     }
                     rowNum++;
                 }
@@ -98,19 +101,23 @@ public class DeviceImportController : ControllerBase
             else
             {
                 using var reader = new StreamReader(stream);
-                using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+                using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    HasHeaderRecord = true,
+                    MissingFieldFound = null,
+                    BadDataFound = null,
+                    TrimOptions = TrimOptions.Trim,
+                });
+
                 records = csv.GetRecords<DeviceImportDto>().ToList();
             }
         }
         catch (Exception ex)
         {
-            return BadRequest(new ImportResult
-            {
+            return BadRequest(new ImportResult 
+            { 
                 Success = false, 
-                Errors = new()
-                {
-                    $"Ошибка чтения файла: {ex.Message}"
-                }
+                Errors = [$"Ошибка чтения файла: {ex.Message}"] 
             });
         }
 
@@ -119,20 +126,14 @@ public class DeviceImportController : ControllerBase
             int rowNum = i + 2;
             var r = records[i];
 
-            if (string.IsNullOrWhiteSpace(r.ModelName))
-                errors.Add($"Строка {rowNum}: Название модели обязательно.");
-
-            if (string.IsNullOrWhiteSpace(r.CompanyName))
-                errors.Add($"Строка {rowNum}: Название компании обязательно.");
-
-            if (string.IsNullOrWhiteSpace(r.Address))
-                errors.Add($"Строка {rowNum}: Адрес обязателен.");
-
-            if (string.IsNullOrWhiteSpace(r.InstallationDateStr) || !DateOnly.TryParse(r.InstallationDateStr, out _))
-                errors.Add($"Строка {rowNum}: Дата установки должна быть в формате ГГГГ-ММ-ДД.");
+            if (string.IsNullOrWhiteSpace(r.ModelName)) errors.Add($"Строка {rowNum}: ModelName обязательно");
+            if (string.IsNullOrWhiteSpace(r.CompanyName)) errors.Add($"Строка {rowNum}: CompanyName обязательно");
+            if (string.IsNullOrWhiteSpace(r.Address)) errors.Add($"Строка {rowNum}: Address обязательно");
+            if (string.IsNullOrWhiteSpace(r.InstallationDate) || !DateOnly.TryParse(r.InstallationDate, out _))
+                errors.Add($"Строка {rowNum}: InstallationDate в формате ГГГГ-ММ-ДД");
         }
 
-        if (errors.Any())
+        if (errors.Count > 0)
         {
             return BadRequest(new ImportResult
             {
@@ -142,36 +143,74 @@ public class DeviceImportController : ControllerBase
         }
 
         int imported = 0;
+
         foreach (var r in records)
         {
             try
             {
+                int? deviceTypeId = null;
+                if (!string.IsNullOrWhiteSpace(r.DeviceTypeName))
+                {
+                    var deviceType = await _context.DeviceTypes
+                        .FirstOrDefaultAsync(t => t.Name == r.DeviceTypeName.Trim());
+
+                    if (deviceType == null)
+                    {
+                        deviceType = new DeviceType
+                        {
+                            Name = r.DeviceTypeName.Trim(),
+                            Description = r.DeviceTypeDescription?.Trim()
+                        };
+                        _context.DeviceTypes.Add(deviceType);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    deviceTypeId = deviceType.Id;
+                }
+
                 var deviceModel = await _context.DeviceModels
-                    .FirstOrDefaultAsync(m => m.Name == r.ModelName!.Trim());
+                    .FirstOrDefaultAsync(m => m.Name == r.ModelName.Trim());
 
                 if (deviceModel == null)
                 {
-                    deviceModel = new DeviceModel { Name = r.ModelName!.Trim() };
+                    deviceModel = new DeviceModel
+                    {
+                        Name = r.ModelName.Trim(),
+                        Description = r.ModelDescription?.Trim(),
+                        DeviceTypeId = deviceTypeId
+                    };
                     _context.DeviceModels.Add(deviceModel);
                     await _context.SaveChangesAsync();
                 }
 
                 var company = await _context.Companies
-                    .FirstOrDefaultAsync(c => c.Name == r.CompanyName!.Trim());
+                    .FirstOrDefaultAsync(c => c.Name == r.CompanyName.Trim());
 
                 if (company == null)
                 {
-                    company = new Company { Name = r.CompanyName!.Trim() };
+                    company = new Company
+                    {
+                        Name = r.CompanyName.Trim(),
+                        ContactEmail = r.CompanyContactEmail?.Trim(),
+                        ContactPhone = r.CompanyContactPhone?.Trim(),
+                        Address = r.CompanyAddress?.Trim(),
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
                     _context.Companies.Add(company);
                     await _context.SaveChangesAsync();
                 }
 
                 var location = await _context.Locations
-                    .FirstOrDefaultAsync(l => l.InstallationAddress == r.Address!.Trim());
+                    .FirstOrDefaultAsync(l => l.InstallationAddress == r.Address.Trim());
 
                 if (location == null)
                 {
-                    location = new Location { InstallationAddress = r.Address!.Trim() };
+                    location = new Location
+                    {
+                        InstallationAddress = r.Address.Trim(),
+                        PlaceDescription = r.PlaceDescription?.Trim() ?? string.Empty
+                    };
                     _context.Locations.Add(location);
                     await _context.SaveChangesAsync();
                 }
@@ -181,9 +220,13 @@ public class DeviceImportController : ControllerBase
                 {
                     var status = await _context.DeviceStatuses
                         .FirstOrDefaultAsync(s => s.Name == r.StatusName.Trim());
-
-                    if (status != null)
-                        statusId = status.Id;
+                    statusId = status?.Id;
+                }
+                else
+                {
+                    var defaultStatus = await _context.DeviceStatuses
+                        .FirstOrDefaultAsync(s => s.Name == "Активен");
+                    statusId = defaultStatus?.Id;
                 }
 
                 int? modemId = null;
@@ -191,19 +234,23 @@ public class DeviceImportController : ControllerBase
                 {
                     var modem = await _context.Modems
                         .FirstOrDefaultAsync(m => m.SerialNumber == r.ModemSerial.Trim());
-
-                    if (modem != null)
-                        modemId = modem.Id;
+                    modemId = modem?.Id;
                 }
 
                 var device = new Device
                 {
                     DeviceModelId = deviceModel.Id,
-                    LocationId = location.Id,
                     CompanyId = company.Id,
-                    InstallationDate = DateOnly.Parse(r.InstallationDateStr!),
-                    DeviceStatusId = statusId,
+                    LocationId = location.Id,
                     ModemId = modemId,
+                    DeviceStatusId = statusId,
+
+                    InstallationDate = DateOnly.Parse(r.InstallationDate),
+
+                    LastServiceDate = !string.IsNullOrWhiteSpace(r.LastServiceDate) &&
+                                      DateOnly.TryParse(r.LastServiceDate, out var lastSvc)
+                        ? lastSvc : null,
+
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -213,20 +260,32 @@ public class DeviceImportController : ControllerBase
             }
             catch (Exception ex)
             {
-                errors.Add($"Ошибка при импорте строки: {ex.Message}");
+                errors.Add($"Ошибка импорта строки (модель: {r.ModelName}, адрес: {r.Address}): {ex.Message}");
             }
         }
 
-        if (errors.Any())
+        if (errors.Count > 0)
         {
             return BadRequest(new ImportResult
             {
-                Success = false, 
-                Errors = errors
+                Success = false,
+                Errors = errors,
+                ImportedCount = imported
             });
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ImportResult
+            {
+                Success = false,
+                Errors = [$"Ошибка финального сохранения: {ex.Message}"]
+            });
+        }
 
         return Ok(new ImportResult
         {
