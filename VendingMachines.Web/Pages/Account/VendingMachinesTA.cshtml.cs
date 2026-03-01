@@ -1,11 +1,11 @@
 ﻿using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using VendingMachines.API.DTOs.DeviceImport;
+using VendingMachines.Web.Pages.Base;
 
 namespace VendingMachines.Web.Pages.Account;
 
-public class VendingMachinesTA : PageModel
+public class VendingMachinesTA : AuthenticatedPageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
 

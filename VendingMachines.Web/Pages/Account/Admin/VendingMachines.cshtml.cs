@@ -42,7 +42,7 @@ namespace VendingMachines.Web.Pages.Account.Admin
         public async Task OnGetAsync(string? nameFilter = null)
         {
             var token = HttpContext.Session.GetString("jwt_token");
-            
+
             using (var httpClient = _httpClientFactory.CreateClient())
             {
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

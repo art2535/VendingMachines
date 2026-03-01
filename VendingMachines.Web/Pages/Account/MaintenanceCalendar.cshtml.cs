@@ -1,15 +1,15 @@
 ﻿using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using VendingMachines.API.DTOs.Monitoring;
 using VendingMachines.Web.DTOs;
+using VendingMachines.Web.Pages.Base;
 
 namespace VendingMachines.Web.Pages.Account;
 
-public class MaintenanceCalendar : PageModel
+public class MaintenanceCalendar : AuthenticatedPageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
 

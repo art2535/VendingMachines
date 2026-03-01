@@ -16,21 +16,30 @@
                 <div class="form-text mt-2">
                     <strong>Требуемая структура файла (первая строка — заголовки):</strong>
                     <ul class="mt-2 mb-0">
-                        <li><code>ModelName</code> — название модели аппарата (обязательно)</li>
-                        <li><code>CompanyName</code> — название компании-франчайзи (обязательно)</li>
-                        <li><code>Address</code> — адрес установки (обязательно)</li>
-                        <li><code>InstallationDate</code> — дата установки в формате <code>ГГГГ-ММ-ДД</code></li>
-                        <li><code>StatusName</code> — статус (опционально, например: "Активен")</li>
+                        <li><code>ModelName</code> — название модели аппарата <strong>(обязательно)</strong></li>
+                        <li><code>ModelDescription</code> — описание модели (опционально)</li>
+                        <li><code>DeviceTypeName</code> — тип аппарата (например: Кофейный, Снековый) (опционально)</li>
+                        <li><code>DeviceTypeDescription</code> — описание типа аппарата (опционально)</li>
+                        <li><code>CompanyName</code> — название компании/франчайзи <strong>(обязательно)</strong></li>
+                        <li><code>CompanyContactEmail</code> — email компании (опционально)</li>
+                        <li><code>CompanyContactPhone</code> — телефон компании (опционально)</li>
+                        <li><code>CompanyAddress</code> — адрес компании (опционально)</li>
+                        <li><code>Address</code> — адрес установки аппарата <strong>(обязательно)</strong></li>
+                        <li><code>PlaceDescription</code> — уточнение места установки (опционально)</li>
+                        <li><code>InstallationDate</code> — дата установки в формате <code>ГГГГ-ММ-ДД</code> <strong>(обязательно)</strong></li>
+                        <li><code>LastServiceDate</code> — дата последнего обслуживания (опционально, ГГГГ-ММ-ДД)</li>
+                        <li><code>StatusName</code> — статус (например: Активен, В ремонте) (опционально)</li>
                         <li><code>ModemSerial</code> — серийный номер модема (опционально)</li>
                     </ul>
                 </div>
 
                 <details class="mt-3">
                     <summary class="btn btn-outline-info btn-sm">Пример содержимого файла</summary>
-                    <pre class="bg-light p-3 mt-2 rounded small">
-ModelName,CompanyName,Address,InstallationDate,StatusName,ModemSerial
-CoffeeMaster,Франчайзи,"ул. Ленина, 10, Москва",2026-02-01,Активен,MD001
-SnackPro,Франчайзи,"пр. Мира, 5, Санкт-Петербург",2026-03-15</pre>
+                    <pre class="bg-light p-3 mt-2 rounded small" style="white-space: pre-wrap; overflow-x: auto;">
+ModelName,ModelDescription,DeviceTypeName,DeviceTypeDescription,CompanyName,CompanyContactEmail,CompanyContactPhone,CompanyAddress,Address,PlaceDescription,InstallationDate,LastServiceDate,StatusName,ModemSerial
+"CoffeeMaster 4000","Кофемашина профессиональная, 18 напитков, сенсорный экран 10"", цвет чёрный","Кофейный","Автомат для приготовления кофе","ООО ""КофеПрофи""","info@coffeeprofi.ru","+79161234567","Москва, ул. Профсоюзная, 123","ТЦ ""Европейский"", 1 этаж, фуд-корт, напротив эскалатора","рядом с эскалатором","2026-03-10","2026-02-25","Активен","HUA1234567890"
+"SnackBox Pro","Снековый автомат с охлаждением, 40 ячеек","Снековый","Автомат для снеков и напитков","ИП Сидоров А.А.","sidoroov.snack@yandex.ru","+79265559876","БЦ ""Атлант""","пр. Мира, 5, вход со стороны парковки, рядом с остановкой","возле входа в холл","2026-04-05","","Активен","ZTE9876543210"
+                    </pre>
                 </details>
             </div>
 
@@ -50,7 +59,7 @@ SnackPro,Франчайзи,"пр. Мира, 5, Санкт-Петербург",2
         </div>
     }
 
-    @if (Model.Errors.Any())
+    @if (Model.Errors?.Count > 0)
     {
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <strong>Ошибки при импорте:</strong>

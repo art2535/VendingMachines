@@ -82,22 +82,6 @@
                    asp-route-deviceId="@Model.SelectedDeviceId"
                    class="btn btn-success">Сегодня</a>
             </div>
-
-            <div class="col-auto ms-auto d-flex gap-2 align-items-end">
-                <a asp-page="./MaintenanceCalendar"
-                   asp-route-year="@prevMonth.Year"
-                   asp-route-month="@prevMonth.Month"
-                   asp-route-deviceId="@Model.SelectedDeviceId"
-                   class="btn btn-outline-secondary btn-lg">«</a>
-
-                <h2 class="mx-3 my-0 text-center fw-bold">@Model.CurrentMonthName</h2>
-
-                <a asp-page="./MaintenanceCalendar"
-                   asp-route-year="@nextMonth.Year"
-                   asp-route-month="@nextMonth.Month"
-                   asp-route-deviceId="@Model.SelectedDeviceId"
-                   class="btn btn-outline-secondary btn-lg">»</a>
-            </div>
         </form>
     </div>
 
