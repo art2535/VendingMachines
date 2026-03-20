@@ -5,7 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:VendingMachines.Desktop.Account.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="550" d:DesignWidth="800"
+      d:DesignHeight="700" d:DesignWidth="850"
       Title="VendingMachinesPage"
       Loaded="Page_Loaded">
 
@@ -18,9 +18,6 @@
                     <Setter Property="Text" Value=""/>
                     <Setter Property="Foreground" Value="Black"/>
                 </Trigger>
-                <Trigger Property="Text" Value="Фильтр">
-                    <Setter Property="Foreground" Value="Gray"/>
-                </Trigger>
             </Style.Triggers>
         </Style>
 
@@ -31,158 +28,119 @@
     </Page.Resources>
 
     <Grid Background="White">
-        <Grid Margin="0 10" HorizontalAlignment="Center"
-              VerticalAlignment="Top">
+        <Grid Margin="0 10" HorizontalAlignment="Center" VerticalAlignment="Top">
             <Grid.RowDefinitions>
-                <RowDefinition Height="0.3*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="0.1*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <StackPanel Orientation="Vertical" Grid.Row="0">
+            <StackPanel Orientation="Vertical" Grid.Row="0" Margin="10 0">
                 <TextBlock Text="Торговые автоматы"
-                           Foreground="Blue" FontSize="18"/>
-                <TextBlock x:Name="CountTextBlock"
-                           Text="Всего найдено 9 шт."/>
+                           Foreground="Blue" FontSize="18" FontWeight="Bold"/>
+                <TextBlock x:Name="CountTextBlock" FontSize="12" Margin="0 2 0 10"/>
             </StackPanel>
 
-            <StackPanel Orientation="Vertical" Grid.Row="1"
-                        Margin="10">
-                <StackPanel Orientation="Horizontal">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Показать"/>
-                        <ComboBox Margin="10 0" Width="50"
-                                  x:Name="PaginationCombobox"
-                                  SelectionChanged="PaginationCombobox_SelectionChanged">
-                            <ComboBoxItem Content="10"/>
-                            <ComboBoxItem Content="25"/>
-                            <ComboBoxItem Content="50"/>
-                        </ComboBox>
-                        <TextBlock Text="записей"/>
-                    </StackPanel>
-
-                    <TextBox Margin="50 0" Width="250"
-                             x:Name="FilterTextBox"
-                             TextChanged="FilterTextBox_TextChanged"/>
-
-                    <StackPanel Orientation="Horizontal">
-                        <Button x:Name="ButtonAddItem"
-                                Width="100"
-                                Background="Transparent"
-                                Click="ButtonAddItem_Click">
-                            <Button.Content>
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Source="/Resources/AddIcon.png"/>
-                                    <TextBlock Text="Добавить"
-                                               Margin="5 0"/>
-                                </StackPanel>
-                            </Button.Content>
-                        </Button>
-
-                        <Button x:Name="ButtonExportData"
-                                Width="100" Margin="10 0"
-                                Background="Transparent"
-                                Click="ButtonExportData_Click">
-                            <Button.Content>
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Source="/Resources/IconExport.png"/>
-                                    <TextBlock Text="Экспорт" Margin="5 0"/>
-                                </StackPanel>
-                            </Button.Content>
-                        </Button>
-                    </StackPanel>
+            <StackPanel Orientation="Horizontal" Grid.Row="1" Margin="10">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Показать" VerticalAlignment="Center"/>
+                    <ComboBox Margin="10 0" Width="60"
+                              x:Name="PaginationCombobox"
+                              SelectedIndex="0"
+                              SelectionChanged="PaginationCombobox_SelectionChanged">
+                        <ComboBoxItem Content="10"/>
+                        <ComboBoxItem Content="25"/>
+                        <ComboBoxItem Content="50"/>
+                    </ComboBox>
+                    <TextBlock Text="записей" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <ListView Grid.Row="1" x:Name="DataListView"
-                          Margin="0 5" AlternationCount="2"
-                          MaxHeight="400"
-                          ScrollViewer.VerticalScrollBarVisibility="Auto">
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem">
-                            <Setter Property="Background" Value="White"/>
-                            <Style.Triggers>
-                                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
-                                    <Setter Property="Background" Value="#EEEEEE"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListView.ItemContainerStyle>
+                <TextBox Margin="50 0" Width="250" Height="25"
+                         x:Name="FilterTextBox"
+                         VerticalContentAlignment="Center"
+                         TextChanged="FilterTextBox_TextChanged"/>
 
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Header="ID" Width="25"
-                                            DisplayMemberBinding="{Binding Id}" />
-                            <GridViewColumn Header="Название автомата"
-                                            Width="120"
-                                            DisplayMemberBinding="{Binding Name}" />
-                            <GridViewColumn Header="Модель"
-                                            Width="100"
-                                            DisplayMemberBinding="{Binding Model}" />
-                            <GridViewColumn Header="Компания"
-                                            Width="100"
-                                            DisplayMemberBinding="{Binding Company}" />
-                            <GridViewColumn Header="Модем"
-                                            Width="50"
-                                            DisplayMemberBinding="{Binding ModemId}" />
-                            <GridViewColumn Header="Адрес / Место"
-                                            Width="150"
-                                            DisplayMemberBinding="{Binding Address}" />
-                            <GridViewColumn Header="В работе с"
-                                            Width="80"
-                                            DisplayMemberBinding="{Binding DateWith}" />
-                            <GridViewColumn Header="Действия"
-                                            Width="100">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" 
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center">
-                                            <Button Margin="2"
-                                                    x:Name="ButtonEditItem"
-                                                    Click="ButtonEditItem_Click"
-                                                    ToolTip="Редактировать"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Padding="2">
-                                                <Image Source="/Resources/IconEdit.png" 
-                                                       Width="16" Height="16"/>
-                                            </Button>
+                <Button x:Name="ButtonAddItem" Width="110" Height="30"
+                        Background="Transparent" BorderBrush="#DDDDDD"
+                        Click="ButtonAddItem_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Resources/AddIcon.png" Width="16" Height="16"/>
+                        <TextBlock Text="Добавить" Margin="5 0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
 
-                                            <Button Margin="2"
-                                                    Click="ButtonDeleteItem_Click"
-                                                    x:Name="ButtonDeleteItem"
-                                                    ToolTip="Удалить"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Padding="2">
-                                                <Image Source="/Resources/IconDelete.png" 
-                                                       Width="16" Height="16"/>
-                                            </Button>
-
-                                            <Button Margin="2"
-                                                    x:Name="ButtonDetachModem"
-                                                    Click="ButtonDetachModem_Click"
-                                                    ToolTip="Отвязать модем"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Padding="2">
-                                                <Image Source="/Resources/IconDetachModem.png" 
-                                                       Width="16" Height="16"/>
-                                            </Button>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                        </GridView>
-                    </ListView.View>
-                </ListView>
+                <Button x:Name="ButtonExportData" Width="110" Height="30" 
+                        Margin="10 0" Background="Transparent" BorderBrush="#DDDDDD"
+                        Click="ButtonExportData_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Resources/IconExport.png" Width="16" Height="16"/>
+                        <TextBlock Text="Экспорт" Margin="5 0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
-            <StackPanel Orientation="Vertical" Grid.Row="2">
-                <StackPanel Orientation="Horizontal" 
-                            x:Name="PaginationPanel"/>
-                <TextBlock x:Name="PaginationTextBlock" 
-                           Margin="5 0 0 0"/>
+            <ListView Grid.Row="2" x:Name="DataListView"
+                      Margin="10 5" AlternationCount="2"
+                      MaxHeight="500" 
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Style.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                <Setter Property="Background" Value="#F9F9F9"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="LightBlue"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListView.ItemContainerStyle>
+
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="ID" Width="40"
+                                        DisplayMemberBinding="{Binding Id}" />
+                        <GridViewColumn Header="Модель" Width="120"
+                                        DisplayMemberBinding="{Binding Model}" />
+                        <GridViewColumn Header="Компания" Width="120"
+                                        DisplayMemberBinding="{Binding Company}" />
+                        <GridViewColumn Header="Модем" Width="80"
+                                        DisplayMemberBinding="{Binding Modem}" />
+                        <GridViewColumn Header="Адрес / Место" Width="220"
+                                        DisplayMemberBinding="{Binding Address}" />
+                        <GridViewColumn Header="Действия" Width="120">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button x:Name="ButtonEditItem" Click="ButtonEditItem_Click"
+                                                ToolTip="Редактировать" Background="Transparent" BorderThickness="0">
+                                            <Image Source="/Resources/IconEdit.png" Width="16" Height="16"/>
+                                        </Button>
+                                        <Button Click="ButtonDeleteItem_Click" x:Name="ButtonDeleteItem"
+                                                ToolTip="Удалить" Background="Transparent" BorderThickness="0" Margin="5 0">
+                                            <Image Source="/Resources/IconDelete.png" Width="16" Height="16"/>
+                                        </Button>
+                                        <Button x:Name="ButtonDetachModem" Click="ButtonDetachModem_Click"
+                                                ToolTip="Отвязать модем" Background="Transparent" BorderThickness="0">
+                                            <Image Source="/Resources/IconDetachModem.png" Width="16" Height="16"/>
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <StackPanel Orientation="Vertical" Grid.Row="3" Margin="10 5">
+                <StackPanel Orientation="Horizontal" x:Name="PaginationPanel" HorizontalAlignment="Left"/>
+                <TextBlock x:Name="PaginationTextBlock" Margin="5 5 0 0" Foreground="Gray" FontSize="11"/>
             </StackPanel>
         </Grid>
     </Grid>

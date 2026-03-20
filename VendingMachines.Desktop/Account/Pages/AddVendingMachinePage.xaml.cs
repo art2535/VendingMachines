@@ -75,55 +75,36 @@ namespace VendingMachines.Desktop.Account.Pages
                 if (device == null)
                     return;
 
-                // --- Текстовые поля ---
-                MachineNametextBox.Text = device.Name ?? string.Empty;
                 AddressTextBox.Text = device.Address ?? string.Empty;
                 PlaceTextBox.Text = device.Place ?? string.Empty;
-                MachineNumberTextBox.Text = device.Id.ToString();
-                PriorityTextBox.Text = device.ServicePriority?.ToString() ?? string.Empty;
 
-                // --- ComboBox: Производитель ---
                 if (!string.IsNullOrEmpty(device.Company))
                 {
-                    MachineManufacturerComboBox.SelectedIndex =
-                        MachineManufacturerComboBox.Items.IndexOf(device.Company);
+                    var index = _companies.FindIndex(c =>
+                        string.Equals(c.Name, device.Company, StringComparison.OrdinalIgnoreCase));
+
+                    if (index != -1)
+                        MachineManufacturerComboBox.SelectedIndex = index;
                 }
 
-                // --- ComboBox: Модель ---
                 if (!string.IsNullOrEmpty(device.Model))
                 {
-                    ModelComboBox.SelectedIndex =
-                        ModelComboBox.Items.IndexOf(device.Model);
+                    string modelNameFromApi = device.Model.Trim();
+
+                    var index = _deviceModels.FindIndex(m =>
+                        m.Name.Trim().Equals(modelNameFromApi, StringComparison.OrdinalIgnoreCase));
+
+                    if (index != -1)
+                    {
+                        ModelComboBox.SelectedIndex = index;
+                    }
                 }
 
-                // --- ComboBox: Модем ---
                 if (device.ModemId.HasValue && device.ModemId.Value > 0)
                 {
-                    var modem = _modems.FirstOrDefault(m => m.Id == device.ModemId);
-                    if (modem != null)
-                        ModemComboBox.SelectedIndex =
-                            ModemComboBox.Items.IndexOf(modem.SerialNumber);
-                }
-
-                // --- ComboBox: Режим работы ---
-                if (!string.IsNullOrEmpty(device.OperatingMode))
-                {
-                    OperatingModeComboBox.SelectedIndex =
-                        OperatingModeComboBox.Items.IndexOf(device.OperatingMode);
-                }
-
-                // --- ComboBox: Часовой пояс ---
-                if (!string.IsNullOrEmpty(device.TimeZone))
-                {
-                    TimeZoneComboBox.SelectedIndex =
-                        TimeZoneComboBox.Items.IndexOf(device.TimeZone);
-                }
-
-                // --- ComboBox: Товарная матрица ---
-                if (!string.IsNullOrEmpty(device.Matrix))
-                {
-                    MatrixComboBox.SelectedIndex =
-                        MatrixComboBox.Items.IndexOf(device.Matrix);
+                    var index = _modems.FindIndex(m => m.Id == device.ModemId);
+                    if (index != -1)
+                        ModemComboBox.SelectedIndex = index;
                 }
             }
             catch (HttpRequestException ex)
@@ -137,39 +118,23 @@ namespace VendingMachines.Desktop.Account.Pages
         {
             try
             {
-                // Загрузка списка производителей (Companies)
                 var companiesResponse = await _client.GetAsync("https://localhost:7270/api/companies");
                 companiesResponse.EnsureSuccessStatusCode();
                 var companies = await companiesResponse.Content.ReadFromJsonAsync<List<Company>>();
                 _companies = companies ?? new List<Company>();
                 MachineManufacturerComboBox.ItemsSource = _companies.Select(c => c.Name).ToList();
 
-                // Загрузка списка моделей (DeviceModels)
                 var modelsResponse = await _client.GetAsync($"{_url}/devicemodels");
                 modelsResponse.EnsureSuccessStatusCode();
                 var models = await modelsResponse.Content.ReadFromJsonAsync<List<DeviceModel>>();
                 _deviceModels = models ?? new List<DeviceModel>();
                 ModelComboBox.ItemsSource = _deviceModels.Select(m => m.Name).ToList();
 
-                // Загрузка списка модемов (Modems)
                 var modemsResponse = await _client.GetAsync($"{_url}/modems");
                 modemsResponse.EnsureSuccessStatusCode();
                 var modems = await modemsResponse.Content.ReadFromJsonAsync<List<Modem>>();
                 _modems = modems ?? new List<Modem>();
                 ModemComboBox.ItemsSource = _modems.Select(m => m.SerialNumber).ToList();
-
-                // Загрузка списка продуктов для товарной матрицы
-                var productsResponse = await _client.GetAsync("https://localhost:7270/api/products");
-                productsResponse.EnsureSuccessStatusCode();
-                var products = await productsResponse.Content.ReadFromJsonAsync<List<Product>>();
-                MatrixComboBox.ItemsSource = products?.Select(p => p.Name).ToList() ?? new List<string>();
-                MatrixComboBox.SelectedIndex = 0;
-
-                OperatingModeComboBox.ItemsSource = new List<string> { "Круглосуточно", "Дневной", "Ночной" };
-                OperatingModeComboBox.SelectedIndex = 0;
-
-                TimeZoneComboBox.ItemsSource = TimeZoneInfo.GetSystemTimeZones().Select(tz => tz.Id).ToList();
-                TimeZoneComboBox.SelectedIndex = 0;
             }
             catch (HttpRequestException ex)
             {
@@ -181,24 +146,25 @@ namespace VendingMachines.Desktop.Account.Pages
         {
             try
             {
-                if (string.IsNullOrEmpty(MachineNametextBox.Text) ||
+                if (string.IsNullOrWhiteSpace(AddressTextBox.Text) ||
+                    string.IsNullOrWhiteSpace(PlaceTextBox.Text) ||
                     MachineManufacturerComboBox.SelectedItem == null ||
                     ModelComboBox.SelectedItem == null ||
-                    string.IsNullOrEmpty(AddressTextBox.Text) ||
-                    string.IsNullOrEmpty(PlaceTextBox.Text) ||
-                    string.IsNullOrEmpty(MachineNumberTextBox.Text) ||
                     ModemComboBox.SelectedItem == null)
                 {
-                    MessageBox.Show("Заполните все обязательные поля!", "Ошибка",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Пожалуйста, заполните все обязательные поля (отмечены *)",
+                        "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+
+                var selectedModelName = ModelComboBox.SelectedItem?.ToString();
+                var selectedCompanyName = MachineManufacturerComboBox.SelectedItem?.ToString();
 
                 var dto = new DeviceUpdateDto
                 {
                     Id = _deviceListItem?.Id ?? 0,
-                    DeviceModelId = GetIdFromName(ModelComboBox.SelectedItem?.ToString(), _deviceModels),
-                    CompanyId = GetIdFromName(MachineManufacturerComboBox.SelectedItem?.ToString(), _companies),
+                    DeviceModelId = GetIdFromName(selectedModelName, _deviceModels),
+                    CompanyId = GetIdFromName(selectedCompanyName, _companies),
                     ModemId = GetIdFromSerialNumber(ModemComboBox.SelectedItem?.ToString(), _modems),
                     InstallationDate = _deviceListItem?.InstallationDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
                     CreatedAt = _deviceListItem?.CreatedAt ?? DateTime.UtcNow,
@@ -227,12 +193,12 @@ namespace VendingMachines.Desktop.Account.Pages
                     _deviceListItem = new DeviceListItem
                     {
                         Id = updatedDevice.Id,
-                        Name = updatedDevice.DeviceModel?.Name ?? string.Empty,
-                        Model = _deviceModels.FirstOrDefault(m => m.Id == updatedDevice.DeviceModelId)?.Name ?? string.Empty,
-                        Company = _companies.FirstOrDefault(c => c.Id == updatedDevice.CompanyId)?.Name ?? "—",
-                        ModemId = updatedDevice.ModemId ?? 0,
-                        Address = updatedDevice.Location?.InstallationAddress ?? string.Empty,
-                        Place = updatedDevice.Location?.PlaceDescription ?? string.Empty,
+                        Model = selectedModelName ?? string.Empty,
+                        Company = selectedCompanyName ?? "—",
+                        ModemId = updatedDevice.ModemId,
+                        Modem = ModemComboBox.SelectedItem?.ToString(),
+                        Address = updatedDevice.Location?.InstallationAddress ?? AddressTextBox.Text,
+                        Place = updatedDevice.Location?.PlaceDescription ?? PlaceTextBox.Text,
                         InstallationDate = updatedDevice.InstallationDate
                     };
                 }

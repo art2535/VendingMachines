@@ -24,23 +24,29 @@ namespace VendingMachines.Desktop.Account.Pages
         private int _pageSize = 10;
         private int _totalCount = 0;
 
+        private bool _isInitialized = false;
+
         public VendingMachinesPage(string jwtToken)
         {
-            InitializeComponent();
             _jwtToken = jwtToken;
 
-            _httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(_url)
-            };
+            _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtToken);
+
+            InitializeComponent();
+
+            PaginationCombobox.SelectedIndex = 0;
         }
 
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            if (_isInitialized)
+                return;
+
             try
             {
                 await LoadDevicesAsync();
+                _isInitialized = true;
             }
             catch (Exception ex)
             {
@@ -53,34 +59,63 @@ namespace VendingMachines.Desktop.Account.Pages
             NavigationService.Navigate(new AddVendingMachinePage(_jwtToken, null));
         }
 
-        private void ButtonExportData_Click(object sender, RoutedEventArgs e)
+        private async void ButtonExportData_Click(object sender, RoutedEventArgs e)
         {
-            var saveFileDialog = new SaveFileDialog
+            try
             {
-                Title = "Сохранить файл как...",
-                FileName = "export",
-                Filter = "PDF файлы (*.pdf)|*.pdf|CSV файлы (*.csv)|*.csv|HTML файлы (*.html;*.htm)|*.html;*.htm",
-                DefaultExt = "pdf"
-            };
+                string requestUrl = $"{_url}?limit=999999&offset=0";
 
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                switch (Path.GetExtension(saveFileDialog.FileName)?.ToLower())
+                string filter = FilterTextBox.Text.Trim();
+                if (!string.IsNullOrEmpty(filter) && filter != "Фильтр")
                 {
-                    case ".pdf":
-                        ExportService.ExportToPdf(saveFileDialog.FileName);
-                        break;
-                    case ".csv":
-                        ExportService.ExportToCsv(saveFileDialog.FileName);
-                        break;
-                    case ".html":
-                    case ".htm":
-                        ExportService.ExportToHtml(saveFileDialog.FileName);
-                        break;
-                    default:
-                        MessageBox.Show("Неподдерживаемый формат файла", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                        break;
+                    requestUrl += $"&nameFilter={Uri.EscapeDataString(filter)}";
                 }
+
+                var response = await _httpClient.GetAsync(requestUrl);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("Не удалось получить полные данные для экспорта.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<PagedDeviceResponse>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (result == null || !result.Items.Any())
+                {
+                    MessageBox.Show("Нет данных для экспорта.");
+                    return;
+                }
+
+                var allItems = result.Items.ToList();
+
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV файлы (*.csv)|*.csv|HTML файлы (*.html)|*.html",
+                    FileName = $"Export_All_{DateTime.Now:dd.MM.yyyy}"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    if (saveFileDialog.FileName.EndsWith(".html"))
+                    {
+                        ExportService.ExportToHtml(saveFileDialog.FileName, allItems);
+                    }
+                    else
+                    {
+                        ExportService.ExportToCsv(saveFileDialog.FileName, allItems);
+                    }
+
+                    MessageBox.Show($"Экспорт {allItems.Count} записей завершен!", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при подготовке экспорта: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -149,11 +184,18 @@ namespace VendingMachines.Desktop.Account.Pages
 
         private async void PaginationCombobox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PaginationCombobox.SelectedItem is ComboBoxItem selected)
+            if (!_isInitialized || DataListView == null)
+                return;
+
+            if (PaginationCombobox?.SelectedItem is ComboBoxItem selected)
             {
                 _pageSize = int.Parse(selected.Content.ToString());
                 _currentPage = 1;
-                await LoadDevicesAsync();
+
+                if (DataListView != null)
+                {
+                    await LoadDevicesAsync();
+                }
             }
         }
 
@@ -162,9 +204,13 @@ namespace VendingMachines.Desktop.Account.Pages
             try
             {
                 int offset = (_currentPage - 1) * _pageSize;
-                var response = !string.IsNullOrEmpty(nameFilter) 
-                    ? await _httpClient.GetAsync($"{_url}?limit={_pageSize}&offset={offset}&nameFilter={nameFilter}")
-                    : await _httpClient.GetAsync($"{_url}?limit={_pageSize}&offset={offset}");
+                string requestUrl = $"{_url}?limit={_pageSize}&offset={offset}";
+                if (!string.IsNullOrEmpty(nameFilter) && nameFilter != "Фильтр")
+                {
+                    requestUrl += $"&nameFilter={Uri.EscapeDataString(nameFilter)}";
+                }
+
+                var response = await _httpClient.GetAsync(requestUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -182,14 +228,17 @@ namespace VendingMachines.Desktop.Account.Pages
                     return;
 
                 _totalCount = result.TotalCount;
-                DataListView.ItemsSource = result.Items;
-                CountTextBlock.Text = $"Всего найдено {_totalCount} шт.";
 
-                int start = (_currentPage - 1) * _pageSize + 1;
-                int end = Math.Min(_currentPage * _pageSize, _totalCount);
-                PaginationTextBlock.Text = $"Записи с {start} до {end} из {_totalCount} записей";
+                Dispatcher.Invoke(() => {
+                    DataListView.ItemsSource = result.Items;
+                    CountTextBlock.Text = $"Всего найдено {_totalCount} шт.";
 
-                RenderPagination();
+                    int start = _totalCount == 0 ? 0 : (_currentPage - 1) * _pageSize + 1;
+                    int end = Math.Min(_currentPage * _pageSize, _totalCount);
+                    PaginationTextBlock.Text = $"Записи с {start} до {end} из {_totalCount} записей";
+
+                    RenderPagination();
+                });
             }
             catch (Exception ex)
             {

@@ -56,8 +56,7 @@ namespace VendingMachines.API.Controllers
                         select new DeviceListItem
                         {
                             Id = device.Id,
-                            Name = model.Name,
-                            Model = type.Name,
+                            Model = model.Name,
                             Company = company != null ? company.Name : "—",
                             ModemId = modem != null ? modem.Id : 0,
                             Modem = modem != null ? modem.Brand : "-",
@@ -99,8 +98,7 @@ namespace VendingMachines.API.Controllers
                         select new DeviceListItem
                         {
                             Id = device.Id,
-                            Name = model.Name,
-                            Model = type.Name,
+                            Model = model.Name,
                             Company = company != null ? company.Name : "—",
                             ModemId = modem != null ? modem.Id : 0,
                             Address = location != null ? location.InstallationAddress : "—",
