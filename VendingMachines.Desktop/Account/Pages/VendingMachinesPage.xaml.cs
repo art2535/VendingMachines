@@ -229,16 +229,25 @@ namespace VendingMachines.Desktop.Account.Pages
 
                 _totalCount = result.TotalCount;
 
-                Dispatcher.Invoke(() => {
-                    DataListView.ItemsSource = result.Items;
-                    CountTextBlock.Text = $"Всего найдено {_totalCount} шт.";
+                //Dispatcher.Invoke(() => {
+                //    DataListView.ItemsSource = result.Items;
+                //    CountTextBlock.Text = $"Всего найдено {_totalCount} шт.";
 
-                    int start = _totalCount == 0 ? 0 : (_currentPage - 1) * _pageSize + 1;
-                    int end = Math.Min(_currentPage * _pageSize, _totalCount);
-                    PaginationTextBlock.Text = $"Записи с {start} до {end} из {_totalCount} записей";
+                //    int start = _totalCount == 0 ? 0 : (_currentPage - 1) * _pageSize + 1;
+                //    int end = Math.Min(_currentPage * _pageSize, _totalCount);
+                //    PaginationTextBlock.Text = $"Записи с {start} до {end} из {_totalCount} записей";
 
-                    RenderPagination();
-                });
+                //    RenderPagination();
+                //});
+
+                DataListView.ItemsSource = result.Items;
+                CountTextBlock.Text = $"Всего найдено {_totalCount} шт.";
+
+                int start = _totalCount == 0 ? 0 : (_currentPage - 1) * _pageSize + 1;
+                int end = Math.Min(_currentPage * _pageSize, _totalCount);
+                PaginationTextBlock.Text = $"Записи с {start} до {end} из {_totalCount} записей";
+
+                RenderPagination();
             }
             catch (Exception ex)
             {
